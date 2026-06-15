@@ -3,6 +3,7 @@ import{createRoot}from'react-dom/client';
 import{Plus,Trash2,Save,Printer,FileText,Users,Download,Eye,EyeOff}from'lucide-react';
 import logoUrl from'../High Amps - Logo - Logo IG.png';
 import'./style.css';
+import'./logo.css';
 const COMPANY={name:'High-Amps Electrical Services',tagline:'Electrical Services',address:'18332 181st Cir S, Boca Raton, FL 33498',phone:'+1 (561) 579-2642',email:'high-amps@outlook.com',hourlyRate:150,taxRate:.07,terms:'Due on receipt',invoicePrefix:'HA'};
 function nextNumber(){const n=Number(localStorage.getItem('ha_counter')||localStorage.getItem('bp_counter')||'1');localStorage.setItem('ha_counter',String(n+1));return`${COMPANY.invoicePrefix}-${String(n).padStart(4,'0')}`}
 const blankDoc=()=>({id:crypto.randomUUID(),type:'Quote',status:'Draft',number:nextNumber(),date:new Date().toISOString().slice(0,10),customerName:'',customerPhone:'',customerEmail:'',jobAddress:'',contractorName:'',contractorPhone:'',projectTitle:'',notes:'Thank you for choosing High-Amps Electrical Services.',labor:[{id:crypto.randomUUID(),description:'Electrical labor',hours:1,rate:COMPANY.hourlyRate}],materials:[{id:crypto.randomUUID(),description:'Materials',qty:1,cost:0,markup:0}],fixedItems:[],photos:[],files:[],payments:[],applyTax:true});
