@@ -1,28 +1,597 @@
-import React,{useMemo,useState,useEffect}from'react';
-import{createRoot}from'react-dom/client';
-import{Plus,Trash2,Save,Printer,FileText,Users,Download,Eye,EyeOff}from'lucide-react';
-import logoUrl from'../High Amps - Logo - Logo IG.png';
-import'./style.css';
-import'./logo.css';
-const COMPANY={name:'High-Amps Electrical Services',tagline:'Electrical Services',address:'18332 181st Cir S, Boca Raton, FL 33498',phone:'+1 (561) 579-2642',email:'high-amps@outlook.com',hourlyRate:150,taxRate:.07,terms:'Due on receipt',invoicePrefix:'HA'};
-function nextNumber(){const n=Number(localStorage.getItem('ha_counter')||localStorage.getItem('bp_counter')||'1');localStorage.setItem('ha_counter',String(n+1));return`${COMPANY.invoicePrefix}-${String(n).padStart(4,'0')}`}
-const blankDoc=()=>({id:crypto.randomUUID(),type:'Quote',status:'Draft',number:nextNumber(),date:new Date().toISOString().slice(0,10),customerName:'',customerPhone:'',customerEmail:'',jobAddress:'',contractorName:'',contractorPhone:'',projectTitle:'',notes:'Thank you for choosing High-Amps Electrical Services.',labor:[{id:crypto.randomUUID(),description:'Electrical labor',hours:1,rate:COMPANY.hourlyRate}],materials:[{id:crypto.randomUUID(),description:'Materials',qty:1,cost:0,markup:0}],fixedItems:[],photos:[],files:[],payments:[],applyTax:true});
-const money=n=>(Number(n)||0).toLocaleString('en-US',{style:'currency',currency:'USD'});
-function stripUploads(d){return{...d,photos:(d.photos||[]).map(({data,...x})=>({...x,notSaved:true})),files:(d.files||[]).map(({data,...x})=>({...x,notSaved:true}))}}
-function stripDocs(ds){return(ds||[]).map(stripUploads)}
-function useLocal(k,init){const[v,setV]=useState(()=>{try{return JSON.parse(localStorage.getItem(k))??init}catch{return init}});useEffect(()=>{try{localStorage.setItem(k,JSON.stringify(stripDocs(v)))}catch(e){console.warn('Local save skipped',e)}},[v]);return[v,setV]}
-function calc(d){const labor=(d.labor||[]).reduce((s,x)=>s+(+x.hours||0)*(+x.rate||0),0),mat=(d.materials||[]).reduce((s,x)=>s+(+x.qty||0)*(+x.cost||0)*(1+(+x.markup||0)/100),0),fixed=(d.fixedItems||[]).reduce((s,x)=>s+(+x.amount||0),0),subtotal=labor+mat+fixed,tax=d.applyTax?subtotal*COMPANY.taxRate:0,paid=(d.payments||[]).reduce((s,x)=>s+(+x.amount||0),0);return{labor,mat,fixed,subtotal,tax,total:subtotal+tax,paid,balance:subtotal+tax-paid}}
-function Logo(){return <div className="logo"><img className="companyLogo" src={logoUrl} alt="High-Amps Electrical Services logo"/><div><b>{COMPANY.name}</b><span>{COMPANY.tagline}</span></div></div>}
-function App(){const[docs,setDocs]=useLocal('bp_docs',[]),[current,setCurrent]=useState(docs[0]||blankDoc()),[tab,setTab]=useState('document');useEffect(()=>{if(!docs.length)setDocs([stripUploads(current)])},[]);const totals=useMemo(()=>calc(current),[current]);const update=p=>setCurrent(c=>({...c,...p}));function save(){try{setDocs(ds=>{const safe=stripUploads(current);const i=ds.findIndex(d=>d.id===current.id);return i>=0?ds.map(d=>d.id===current.id?safe:d):[safe,...ds]});alert('Saved on this browser. Uploaded PDFs/photos are kept only while this page stays open; print or save the PDF before closing.')}catch(e){alert('Could not save. Please print/save the invoice PDF before leaving this page.')}}function newDoc(type='Quote'){const d={...blankDoc(),type};setCurrent(d);setDocs(ds=>[stripUploads(d),...ds]);setTab('document')}function loadDoc(id){const d=docs.find(x=>x.id===id);if(d){setCurrent(d);setTab('document')}}function removeDoc(id){if(confirm('Delete this document?')){const nd=docs.filter(d=>d.id!==id);setDocs(nd);setCurrent(nd[0]||blankDoc())}}return <div className="app"><header className="top no-print"><Logo/><button onClick={()=>newDoc('Quote')}><Plus size={18}/>New Quote</button><button onClick={()=>newDoc('Invoice')}><Plus size={18}/>New Invoice</button></header><nav className="tabs no-print"><button className={tab==='document'?'on':''} onClick={()=>setTab('document')}><FileText/>Document</button><button className={tab==='records'?'on':''} onClick={()=>setTab('records')}><Users/>Records</button><button className={tab==='report'?'on':''} onClick={()=>setTab('report')}><Download/>Tax Report</button></nav>{tab==='document'&&<main className="grid"><section className="panel no-print"><Editor doc={current} update={update}/><LineEditor doc={current} update={update}/><Uploads doc={current} update={update}/><div className="actions"><button onClick={save}><Save size={18}/>Save</button><button onClick={()=>window.print()}><Printer size={18}/>Print / Save PDF</button></div></section><Preview doc={current} totals={totals}/></main>}{tab==='records'&&<Records docs={docs} loadDoc={loadDoc} removeDoc={removeDoc}/>} {tab==='report'&&<Report docs={docs}/>}</div>}
-function Field({label,value,onChange,type='text'}){return <label>{label}<input type={type} value={value||''} onChange={e=>onChange(e.target.value)}/></label>}
-function Editor({doc,update}){return <><h2>Document details</h2><div className="two"><label>Type<select value={doc.type} onChange={e=>update({type:e.target.value})}><option>Quote</option><option>Invoice</option></select></label><Field label="Number" value={doc.number} onChange={v=>update({number:v})}/><Field label="Date" type="date" value={doc.date} onChange={v=>update({date:v})}/><Field label="Status" value={doc.status} onChange={v=>update({status:v})}/></div><h2>Customer</h2><div className="two"><Field label="Customer name" value={doc.customerName} onChange={v=>update({customerName:v})}/><Field label="Phone" value={doc.customerPhone} onChange={v=>update({customerPhone:v})}/><Field label="Email" value={doc.customerEmail} onChange={v=>update({customerEmail:v})}/><Field label="Job address" value={doc.jobAddress} onChange={v=>update({jobAddress:v})}/></div><h2>Contractor / Subcontractor</h2><div className="two"><Field label="Name" value={doc.contractorName} onChange={v=>update({contractorName:v})}/><Field label="Phone" value={doc.contractorPhone} onChange={v=>update({contractorPhone:v})}/></div><Field label="Project title" value={doc.projectTitle} onChange={v=>update({projectTitle:v})}/><label>Notes<textarea value={doc.notes||''} onChange={e=>update({notes:e.target.value})}/></label><label className="check"><input type="checkbox" checked={doc.applyTax} onChange={e=>update({applyTax:e.target.checked})}/> Apply 7% tax</label></>}
-function LineEditor({doc,update}){const set=(k,a)=>update({[k]:a}),row=(k,o)=>set(k,[...(doc[k]||[]),{id:crypto.randomUUID(),...o}]),del=(k,id)=>set(k,(doc[k]||[]).filter(x=>x.id!==id)),edit=(k,id,p)=>set(k,(doc[k]||[]).map(x=>x.id===id?{...x,...p}:x));return <><h2>Labor</h2>{(doc.labor||[]).map(x=><div className="line" key={x.id}><input value={x.description} onChange={e=>edit('labor',x.id,{description:e.target.value})}/><input type="number" value={x.hours} onChange={e=>edit('labor',x.id,{hours:e.target.value})}/><input type="number" value={x.rate} onChange={e=>edit('labor',x.id,{rate:e.target.value})}/><button onClick={()=>del('labor',x.id)}><Trash2 size={16}/></button></div>)}<button onClick={()=>row('labor',{description:'Labor',hours:1,rate:COMPANY.hourlyRate})}>Add labor</button><h2>Materials</h2>{(doc.materials||[]).map(x=><div className="line" key={x.id}><input value={x.description} onChange={e=>edit('materials',x.id,{description:e.target.value})}/><input type="number" value={x.qty} onChange={e=>edit('materials',x.id,{qty:e.target.value})}/><input type="number" value={x.cost} onChange={e=>edit('materials',x.id,{cost:e.target.value})}/><button onClick={()=>del('materials',x.id)}><Trash2 size={16}/></button></div>)}<button onClick={()=>row('materials',{description:'Materials',qty:1,cost:0,markup:0})}>Add material</button><h2>Fixed job costs</h2>{(doc.fixedItems||[]).map(x=><div className="line" key={x.id}><input value={x.description} onChange={e=>edit('fixedItems',x.id,{description:e.target.value})}/><input type="number" value={x.amount} onChange={e=>edit('fixedItems',x.id,{amount:e.target.value})}/><button onClick={()=>del('fixedItems',x.id)}><Trash2 size={16}/></button></div>)}<button onClick={()=>row('fixedItems',{description:'Fixed job total',amount:0})}>Add fixed cost</button></>}
-function Uploads({doc,update}){async function add(e,type){const files=[...e.target.files],items=await Promise.all(files.map(f=>new Promise(res=>{const r=new FileReader();r.onload=()=>res({id:crypto.randomUUID(),name:f.name,type:f.type,data:r.result,showOnInvoice:true});r.readAsDataURL(f)})));update({[type]:[...(doc[type]||[]),...items]});e.target.value=''}const toggle=(type,id)=>update({[type]:(doc[type]||[]).map(f=>f.id===id?{...f,showOnInvoice:!(f.showOnInvoice!==false)}:f)}),remove=(type,id)=>update({[type]:(doc[type]||[]).filter(f=>f.id!==id)}),list=(type,title)=>(doc[type]||[]).length>0&&<div className="upload-list"><b>{title}</b>{(doc[type]||[]).map(f=><div className="upload-row" key={f.id}><span>{f.name}{f.notSaved?' — upload again to print':''}</span><button onClick={()=>toggle(type,f.id)}>{f.showOnInvoice!==false?<><Eye size={14}/>Shown</>:<><EyeOff size={14}/>Hidden</>}</button><button onClick={()=>remove(type,f.id)}><Trash2 size={14}/></button></div>)}</div>;return <><h2>Job photos</h2><input type="file" accept="image/*" multiple onChange={e=>add(e,'photos')}/>{list('photos','Photos')}<h2>Material lists / receipts</h2><input type="file" accept="image/*,.pdf" multiple onChange={e=>add(e,'files')}/>{list('files','Material lists and receipts')}</>}
-function PaymentInfo(){return <div className="payment"><b>Payment Methods</b><p><b>Zelle:</b> high-amps@outlook.com</p><p><b>Bank Transfer:</b><br/>Account Name: Beck Projects LLC<br/>Bank: Capital One<br/>Account and routing information available upon request.</p></div>}
-function Preview({doc,totals}){const visiblePhotos=(doc.photos||[]).filter(f=>f.showOnInvoice!==false&&f.data),visibleFiles=(doc.files||[]).filter(f=>f.showOnInvoice!==false&&f.data);return <section className="preview"><div className="paper"><div className="phead"><Logo/><div><h1>{doc.type}</h1><p>{doc.number}<br/>{doc.date}<br/>{COMPANY.terms}</p></div></div><p>{COMPANY.address}<br/>{COMPANY.phone} • {COMPANY.email}</p><hr/><b>Bill To</b><p>{doc.customerName}<br/>{doc.customerPhone}<br/>{doc.customerEmail}<br/>{doc.jobAddress}</p>{doc.contractorName&&<p><b>Contractor/Subcontractor:</b> {doc.contractorName} {doc.contractorPhone}</p>}<h2>{doc.projectTitle}</h2><Table title="Labor" rows={doc.labor} kind="labor"/><Table title="Materials" rows={doc.materials} kind="materials"/><Table title="Fixed Costs" rows={doc.fixedItems||[]} kind="fixed"/><div className="totals"><p>Subtotal <b>{money(totals.subtotal)}</b></p><p>Tax 7% <b>{money(totals.tax)}</b></p><p className="grand">Total <b>{money(totals.total)}</b></p><p>Paid <b>{money(totals.paid)}</b></p><p>Balance Due <b>{money(totals.balance)}</b></p></div><PaymentInfo/><p>{doc.notes}</p>{visibleFiles.length>0&&<><h2>Material Lists & Receipts</h2><div className="attachments printable-attachments">{visibleFiles.map(f=><Attachment key={f.id} file={f}/>)}</div></>}{visiblePhotos.length>0&&<><h2>Job Photos</h2><div className="photos">{visiblePhotos.map(p=><img className="receipt-img" key={p.id} src={p.data} alt={p.name}/>)}</div></>}</div></section>}
-function Attachment({file}){const isImage=(file.type||'').startsWith('image/');return <div className="attachment printed-file">{isImage?<img className="receipt-img" src={file.data} alt={file.name}/>:<PdfPages file={file}/>}<small>{file.name}</small></div>}
-function PdfPages({file}){const[pages,setPages]=useState([]);const[status,setStatus]=useState('Rendering PDF pages...');useEffect(()=>{let cancelled=false;async function run(){try{const pdfjs=await import(/* @vite-ignore */'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.mjs');pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4.10.38/build/pdf.worker.mjs';const pdf=await pdfjs.getDocument(file.data).promise;const rendered=[];for(let i=1;i<=pdf.numPages;i++){const page=await pdf.getPage(i);const viewport=page.getViewport({scale:1.45});const canvas=document.createElement('canvas');canvas.width=viewport.width;canvas.height=viewport.height;await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;rendered.push(canvas.toDataURL('image/png'))}if(!cancelled){setPages(rendered);setStatus('')}}catch(e){if(!cancelled)setStatus('Could not render this PDF in the invoice. Try saving the material list as images and uploading those instead.')}}run();return()=>{cancelled=true}},[file.data]);return <div className="pdf-render"><b>{file.name}</b>{status&&<p>{status}</p>}{pages.map((src,i)=><img className="pdf-page-img" src={src} alt={`${file.name} page ${i+1}`} key={i}/>)}</div>}
-function Table({title,rows,kind}){if(!rows?.length)return null;return <><h3>{title}</h3><table><tbody>{rows.map(r=><tr key={r.id}><td>{r.description}</td><td>{kind==='labor'?`${r.hours} hrs × ${money(r.rate)}`:kind==='materials'?`${r.qty} × ${money(r.cost)}`:''}</td><td>{money(kind==='labor'?r.hours*r.rate:kind==='materials'?r.qty*r.cost:r.amount)}</td></tr>)}</tbody></table></>}
-function Records({docs,loadDoc,removeDoc}){return <main className="panel wide"><h2>Saved Quotes & Invoices</h2>{docs.map(d=><div className="record" key={d.id}><div><b>{d.number}</b> {d.type}<br/><span>{d.customerName||'No customer'} — {d.projectTitle}</span></div><button onClick={()=>loadDoc(d.id)}>Open</button><button onClick={()=>removeDoc(d.id)}>Delete</button></div>)}</main>}
-function Report({docs}){const inv=docs.filter(d=>d.type==='Invoice'),sums=inv.reduce((a,d)=>{const t=calc(d);a.total+=t.total;a.tax+=t.tax;a.balance+=t.balance;return a},{total:0,tax:0,balance:0});return <main className="panel wide"><h2>Tax Report</h2><p>Total invoiced: <b>{money(sums.total)}</b></p><p>Sales tax collected/owed: <b>{money(sums.tax)}</b></p><p>Unpaid balance: <b>{money(sums.balance)}</b></p><p>Data is stored in this browser. Export/backup features can be added in the next version.</p></main>}
-createRoot(document.getElementById('root')).render(<App/>);
+import React, { useEffect, useRef, useState } from "react";
+import { createRoot } from "react-dom/client";
+import Editor, { Field } from "./components/Editor.jsx";
+import Preview, { Logo } from "./components/Preview.jsx";
+import Records from "./components/Records.jsx";
+import { locked, today } from "./domain/invoice.js";
+import { repository } from "./storage/repository.js";
+import "./style.css";
+
+function App() {
+  const [docs, setDocs] = useState([]),
+    [current, setCurrent] = useState(null),
+    [tab, setTab] = useState("records");
+  const [ready, setReady] = useState(false),
+    [busy, setBusy] = useState(false),
+    [dirty, setDirty] = useState(false),
+    [message, setMessage] = useState(""),
+    [error, setError] = useState("");
+  const [uploads, setUploads] = useState([]),
+    [payment, setPayment] = useState(null),
+    [pdfUrl, setPdfUrl] = useState("");
+  const restoreRef = useRef(null),
+    operation = useRef(false);
+  async function refresh() {
+    setDocs(await repository.list());
+  }
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        await repository.migrate();
+        const records = await repository.list();
+        if (active) {
+          setDocs(records);
+          setReady(true);
+        }
+        navigator.storage?.persist?.().catch(() => {});
+      } catch (e) {
+        if (active)
+          setError(
+            `Could not open records: ${e.message}. Original data is unchanged.`,
+          );
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+  useEffect(() => {
+    const handler = (e) => {
+      if (dirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [dirty]);
+  useEffect(
+    () => () => {
+      if (pdfUrl) URL.revokeObjectURL(pdfUrl);
+    },
+    [pdfUrl],
+  );
+  async function run(task) {
+    if (operation.current) return;
+    operation.current = true;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      await task();
+    } catch (e) {
+      setError(
+        e.name === "QuotaExceededError"
+          ? "Device storage is full. Changes were not saved. Export a backup and free device storage, then retry."
+          : e.message,
+      );
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
+  }
+  function mayLeave() {
+    return (
+      !dirty || window.confirm("Discard unsaved changes to this document?")
+    );
+  }
+  async function newDoc(type) {
+    if (!mayLeave()) return;
+    await run(async () => {
+      const d = await repository.create(type);
+      setCurrent(d);
+      setUploads([]);
+      setDirty(false);
+      setTab("document");
+      await refresh();
+      setMessage("Draft created and saved to records.");
+    });
+  }
+  async function open(id) {
+    if (!mayLeave()) return;
+    await run(async () => {
+      setCurrent(await repository.get(id));
+      setUploads([]);
+      setDirty(false);
+      setTab("document");
+    });
+  }
+  function update(patch) {
+    if (!current || locked(current) || busy) return;
+    setCurrent((d) => ({ ...d, ...patch }));
+    setDirty(true);
+    setMessage("");
+  }
+  function addFiles(files, category) {
+    const allowed = [
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+      "application/pdf",
+    ];
+    if (files.some((f) => !allowed.includes(f.type))) {
+      setError("Use PNG, JPEG, WebP or PDF files.");
+      return;
+    }
+    if (files.some((f) => f.size > 30 * 1024 * 1024)) {
+      setError("Each attachment must be 30 MB or smaller.");
+      return;
+    }
+    const added = files.map((blob) => ({ id: crypto.randomUUID(), blob }));
+    setUploads((old) => [...old, ...added]);
+    update({
+      attachments: [
+        ...current.attachments,
+        ...added.map(({ id, blob }) => ({
+          id,
+          name: blob.name,
+          type: blob.type,
+          size: blob.size,
+          category,
+          showOnInvoice: true,
+          missing: false,
+        })),
+      ],
+    });
+  }
+  async function save(action = "save", detail = {}) {
+    const d = await repository.save(current, { action, detail, uploads });
+    setCurrent(d);
+    setUploads([]);
+    setDirty(false);
+    await refresh();
+    return d;
+  }
+  async function act(action, detail) {
+    await run(async () => {
+      await save(action, detail);
+      setPayment(null);
+      setMessage(
+        action === "paid"
+          ? "Invoice marked paid and locked."
+          : action === "issue"
+            ? "Document issued and saved. You can still make corrections while unpaid."
+            : "Record saved.",
+      );
+    });
+  }
+  async function pdf(mode) {
+    await run(async () => {
+      const d = dirty ? await save() : current;
+      const { createInvoicePdf, download } = await import("./services/pdf.js");
+      const blob = await createInvoicePdf(d, repository);
+      if (mode === "download")
+        download(blob, `${d.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`);
+      else setPdfUrl(URL.createObjectURL(blob));
+      setMessage("PDF ready. Attach the downloaded file to your email.");
+    });
+  }
+  async function backup() {
+    await run(async () => {
+      const data = await repository.backup();
+      const { download } = await import("./services/pdf.js");
+      download(
+        new Blob([JSON.stringify(data)], { type: "application/json" }),
+        `high-amps-backup-${today()}.json`,
+      );
+      setMessage(
+        "Backup downloaded with saved records, revision history and attachments. Unsaved edits are not included.",
+      );
+    });
+  }
+  async function restore(file) {
+    if (!file) return;
+    await run(async () => {
+      const result = await repository.restore(JSON.parse(await file.text()));
+      await refresh();
+      setMessage(
+        `Restored ${result.added} records. Skipped ${result.skipped} existing records; existing documents were not overwritten.`,
+      );
+    });
+  }
+  return (
+    <>
+      <header className="top">
+        <Logo />
+        <div className="top-actions">
+          <button
+            disabled={!ready || busy}
+            className="secondary dark"
+            onClick={() => newDoc("Quote")}
+          >
+            + New quote
+          </button>
+          <button disabled={!ready || busy} onClick={() => newDoc("Invoice")}>
+            + New invoice
+          </button>
+        </div>
+      </header>
+      <div className="workspace">
+        <nav aria-label="Main navigation">
+          <button
+            disabled={busy}
+            className={tab === "records" ? "active" : ""}
+            onClick={() => setTab("records")}
+          >
+            Invoice records
+          </button>
+          <button
+            disabled={!current || busy}
+            className={tab === "document" ? "active" : ""}
+            onClick={() => setTab("document")}
+          >
+            Current document{dirty ? " •" : ""}
+          </button>
+          <button
+            disabled={busy}
+            className={tab === "backup" ? "active" : ""}
+            onClick={() => setTab("backup")}
+          >
+            Backup & storage
+          </button>
+          <span className="version">VERSION 2</span>
+        </nav>
+        {error && (
+          <div className="notice error" role="alert">
+            {error}
+          </div>
+        )}
+        {message && (
+          <div className="notice success" role="status">
+            {message}
+          </div>
+        )}
+        {busy && (
+          <div className="notice" role="status">
+            Working — please keep this page open…
+          </div>
+        )}
+        {!ready ? (
+          <section className="card empty">
+            <h1>
+              {error ? "Records could not be opened" : "Opening your records…"}
+            </h1>
+            {error && <button onClick={() => location.reload()}>Retry</button>}
+          </section>
+        ) : tab === "records" ? (
+          <Records docs={docs} open={open} />
+        ) : tab === "backup" ? (
+          <main className="backup card">
+            <p className="eyebrow">Protect your records</p>
+            <h1>Backup & storage</h1>
+            <p>
+              Invoices and attachments are stored persistently in this browser
+              on this device. They are not yet synced to a cloud account.
+              Clearing site data or losing this device can remove your records.
+            </p>
+            <p>
+              Download regular backups and store them somewhere safe. Backups
+              include saved documents, all retained attachments and revision
+              history.
+            </p>
+            <div className="button-row">
+              <button disabled={busy} onClick={backup}>
+                Download full backup
+              </button>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() => restoreRef.current.click()}
+              >
+                Restore backup
+              </button>
+              <input
+                hidden
+                ref={restoreRef}
+                type="file"
+                accept="application/json,.json"
+                onChange={(e) => {
+                  restore(e.target.files[0]);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <p className="muted">
+              Restore adds missing records and skips matching IDs or document
+              numbers. It never replaces or unlocks existing paid records.
+            </p>
+            <h2>Previous invoices</h2>
+            <p>
+              Version 1 records migrate automatically when this app opens on the
+              same browser and website address. Previously downloaded PDFs that
+              were never saved as records must be entered manually. Missing old
+              uploads are flagged for re-upload.
+            </p>
+            <button
+              disabled={busy}
+              className="secondary"
+              onClick={() =>
+                run(async () => {
+                  await refresh();
+                  setMessage("Records refreshed.");
+                })
+              }
+            >
+              Refresh records
+            </button>
+          </main>
+        ) : (
+          current && (
+            <main>
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">{current.type} workspace</p>
+                  <h1>
+                    {current.number}{" "}
+                    <span className={`badge ${current.status.toLowerCase()}`}>
+                      {current.status}
+                    </span>
+                  </h1>
+                  <p className="muted">
+                    {locked(current)
+                      ? `${current.status} record · locked from editing`
+                      : dirty
+                        ? "Unsaved changes — save before leaving"
+                        : "Saved on this device"}
+                  </p>
+                </div>
+                <div className="button-row">
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => pdf("view")}
+                  >
+                    View / print PDF
+                  </button>
+                  <button
+                    className="secondary"
+                    disabled={busy}
+                    onClick={() => pdf("download")}
+                  >
+                    Download PDF
+                  </button>
+                </div>
+              </div>
+              {locked(current) && (
+                <div className="notice">
+                  This {current.status.toLowerCase()} document is read-only.{" "}
+                  {current.status === "Paid"
+                    ? "Payment recorded " +
+                      (current.paidDate || "(legacy paid date unavailable)") +
+                      ". No admin override is available."
+                    : current.voidReason}
+                </div>
+              )}
+              {!locked(current) && (
+                <div className="action-bar">
+                  <button disabled={busy} onClick={() => act()}>
+                    Save changes
+                  </button>
+                  {current.status === "Draft" ? (
+                    <button disabled={busy} onClick={() => act("issue")}>
+                      Generate / issue {current.type.toLowerCase()}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className="secondary"
+                        disabled={busy}
+                        onClick={() => act("reopen")}
+                      >
+                        Reopen as draft
+                      </button>
+                      {current.type === "Invoice" && (
+                        <button
+                          disabled={busy}
+                          onClick={() =>
+                            setPayment({
+                              paidDate: today(),
+                              paymentMethod: "Zelle",
+                              paymentReference: "",
+                            })
+                          }
+                        >
+                          Mark paid
+                        </button>
+                      )}
+                    </>
+                  )}
+                  <button
+                    className="quiet danger"
+                    disabled={busy}
+                    onClick={() => {
+                      const reason = prompt(
+                        "Reason for voiding this document? The record will be retained and locked.",
+                      );
+                      if (reason) act("void", { reason });
+                    }}
+                  >
+                    Void
+                  </button>
+                  <span className="muted">
+                    Unpaid invoices can be corrected and downloaded again.
+                  </span>
+                </div>
+              )}
+              <div className="document-grid">
+                <Editor
+                  doc={current}
+                  update={update}
+                  disabled={busy}
+                  addFiles={addFiles}
+                  removeFile={(id) => {
+                    update({
+                      attachments: current.attachments.filter(
+                        (a) => a.id !== id,
+                      ),
+                    });
+                    setUploads((list) => list.filter((a) => a.id !== id));
+                  }}
+                />
+                <section className="preview-section">
+                  <div className="preview-label">DOCUMENT PREVIEW</div>
+                  <Preview doc={current} />
+                  <section className="card history">
+                    <h2>Record history</h2>
+                    {current.history
+                      .slice()
+                      .reverse()
+                      .map((h, i) => (
+                        <p key={i}>
+                          <strong>{h.action}</strong>
+                          <small>
+                            {new Date(h.at).toLocaleString()} · Revision{" "}
+                            {h.version}
+                            {h.reason ? ` · ${h.reason}` : ""}
+                          </small>
+                        </p>
+                      ))}
+                  </section>
+                </section>
+              </div>
+            </main>
+          )
+        )}
+        <footer>
+          High-Amps Electrical Services · Records saved on this device ·{" "}
+          <button className="quiet" onClick={() => setTab("backup")}>
+            Back up your records
+          </button>
+        </footer>
+      </div>
+      {payment && (
+        <div className="modal-backdrop">
+          <section
+            className="modal card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="payment-title"
+          >
+            <h2 id="payment-title">Record full payment</h2>
+            {error && (
+              <div className="notice error" role="alert">
+                {error}
+              </div>
+            )}
+            <p>
+              Marking this invoice paid saves your changes and locks the invoice
+              and its attachments. This cannot be undone in Version 2.
+            </p>
+            <Field
+              label="Paid date"
+              type="date"
+              max={today()}
+              value={payment.paidDate}
+              onChange={(v) => setPayment((p) => ({ ...p, paidDate: v }))}
+            />
+            <label>
+              Payment method
+              <select
+                value={payment.paymentMethod}
+                onChange={(e) =>
+                  setPayment((p) => ({ ...p, paymentMethod: e.target.value }))
+                }
+              >
+                {[
+                  "Zelle",
+                  "Bank transfer",
+                  "Cash",
+                  "Check",
+                  "Card",
+                  "Other",
+                ].map((m) => (
+                  <option key={m}>{m}</option>
+                ))}
+              </select>
+            </label>
+            <Field
+              label="Payment reference / note"
+              value={payment.paymentReference}
+              onChange={(v) =>
+                setPayment((p) => ({ ...p, paymentReference: v }))
+              }
+            />
+            <div className="button-row">
+              <button disabled={busy} onClick={() => act("paid", payment)}>
+                Confirm paid & lock
+              </button>
+              <button
+                disabled={busy}
+                className="secondary"
+                onClick={() => setPayment(null)}
+              >
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {pdfUrl && (
+        <div className="modal-backdrop">
+          <section
+            className="pdf-modal card"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Print PDF"
+          >
+            <div className="section-heading">
+              <p>
+                Use the PDF viewer’s print control, or open it in a new tab.
+              </p>
+              <div className="button-row">
+                <a
+                  className="button"
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Open PDF
+                </a>
+                <button className="secondary" onClick={() => setPdfUrl("")}>
+                  Close PDF
+                </button>
+              </div>
+            </div>
+            <iframe
+              title="Invoice PDF — use viewer controls to print"
+              src={pdfUrl}
+            />
+          </section>
+        </div>
+      )}
+    </>
+  );
+}
+class ErrorBoundary extends React.Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  render() {
+    return this.state.error ? (
+      <main className="card">
+        <h1>Could not display the app</h1>
+        <p>Your saved records have not been deleted. Reload to try again.</p>
+        <button onClick={() => location.reload()}>Reload</button>
+      </main>
+    ) : (
+      this.props.children
+    );
+  }
+}
+createRoot(document.getElementById("root")).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
+);
