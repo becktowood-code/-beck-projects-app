@@ -150,7 +150,7 @@ export async function createInvoicePdf(doc, repository) {
         for (const sourcePage of source.getPages()) {
           const embedded = await pdf.embedPage(sourcePage);
           const p = pdf.addPage([612, 792]);
-          const scale = Math.min(528 / embedded.width, 680 / embedded.height);
+          const scale = Math.min(306 / embedded.width, 396 / embedded.height);
           p.drawPage(embedded, {
             x: (612 - embedded.width * scale) / 2,
             y: 60 + (680 - embedded.height * scale) / 2,
@@ -168,7 +168,7 @@ export async function createInvoicePdf(doc, repository) {
         const image = await imagePng(stored.blob),
           embedded = await pdf.embedPng(image);
         const p = pdf.addPage([612, 792]),
-          scale = Math.min(528 / embedded.width, 680 / embedded.height);
+          scale = Math.min(306 / embedded.width, 396 / embedded.height);
         p.drawImage(embedded, {
           x: (612 - embedded.width * scale) / 2,
           y: 60 + (680 - embedded.height * scale) / 2,

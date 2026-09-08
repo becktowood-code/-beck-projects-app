@@ -1,4 +1,5 @@
-const MAX_EDGE = 2200;
+// A half-letter image is about 4.25 x 5.5 inches at 200-250 DPI.
+const MAX_EDGE = 1100;
 const JPEG_QUALITY = 0.82;
 
 export async function compressImage(file) {
