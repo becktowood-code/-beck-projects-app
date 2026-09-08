@@ -161,7 +161,7 @@ export async function createInvoicePdf(doc, repository) {
             width: embedded.width * scale,
             height: embedded.height * scale,
           });
-          p.drawText(safe(item.name).slice(0, 90), {
+          p.drawText(safe(item.title || item.name).slice(0, 90), {
             x: 42,
             y: 37,
             size: 8,
@@ -185,7 +185,7 @@ export async function createInvoicePdf(doc, repository) {
           width: embedded.width * scale,
           height: embedded.height * scale,
         });
-        p.drawText(safe(item.name).slice(0, 90), {
+        p.drawText(safe(item.title || item.name).slice(0, 90), {
           x: 42,
           y: boxTop - boxHeight - 14,
           size: 8,

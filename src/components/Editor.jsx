@@ -244,12 +244,24 @@ export default function Editor({
         {doc.attachments.map((a) => (
           <div className="attachment-row" key={a.id}>
             <div>
-              <strong>{a.name}</strong>
+              <strong>{a.title || a.name}</strong>
               <small>
                 {a.category}
                 {a.missing ? " · Original file missing — upload again" : ""}
               </small>
             </div>
+            {a.category === "Photo" && (
+              <Field
+                label="Photo title (optional)"
+                value={a.title || ""}
+                placeholder={a.name}
+                onChange={(value) =>
+                  set("attachments", doc.attachments.map((f) =>
+                    f.id === a.id ? { ...f, title: value } : f,
+                  ))
+                }
+              />
+            )}
             {a.category === "Receipt / material list" && (
               <div className="receipt-value">
                 <Field

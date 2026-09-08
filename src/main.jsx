@@ -221,6 +221,7 @@ function App({ repository, user, signOut }) {
         ...added.map(({ id, blob, originalName }) => ({
           id,
           name: originalName,
+          title: category === "Photo" ? originalName : undefined,
           type: blob.type,
           size: blob.size,
           category,

@@ -106,7 +106,7 @@ export default function Preview({ doc }) {
             .filter((a) => a.showOnInvoice)
             .map((a) => (
               <p key={a.id}>
-                {a.name}
+                {a.title || a.name}
                 {a.missing ? " — missing original" : ""}
               </p>
             ))}
