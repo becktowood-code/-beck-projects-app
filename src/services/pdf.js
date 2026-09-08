@@ -138,6 +138,8 @@ export async function createInvoicePdf(doc, repository) {
   }
   if (doc.attachments.some((a) => a.category === "Receipt / material list" && Number(a.invoiceAmount) > 0))
     text("Materials receipts attached", { font: bold });
+  let imagePage = null;
+  let imageSlot = 0;
   for (const item of doc.attachments.filter((a) => a.showOnInvoice)) {
     if (item.missing)
       throw new Error(`Re-upload or hide the missing attachment: ${item.name}`);
@@ -146,6 +148,8 @@ export async function createInvoicePdf(doc, repository) {
       throw new Error(`Attachment could not be loaded: ${item.name}`);
     try {
       if (item.type === "application/pdf") {
+        imagePage = null;
+        imageSlot = 0;
         const source = await PDFDocument.load(await stored.blob.arrayBuffer());
         for (const sourcePage of source.getPages()) {
           const embedded = await pdf.embedPage(sourcePage);
@@ -167,20 +171,27 @@ export async function createInvoicePdf(doc, repository) {
       } else {
         const image = await imagePng(stored.blob),
           embedded = await pdf.embedPng(image);
-        const p = pdf.addPage([612, 792]),
-          scale = Math.min(306 / embedded.width, 396 / embedded.height);
+        if (!imagePage || imageSlot === 2) {
+          imagePage = pdf.addPage([612, 792]);
+          imageSlot = 0;
+        }
+        const p = imagePage,
+          boxTop = imageSlot === 0 ? 730 : 370,
+          boxHeight = 300,
+          scale = Math.min(528 / embedded.width, boxHeight / embedded.height);
         p.drawImage(embedded, {
           x: (612 - embedded.width * scale) / 2,
-          y: 60 + (680 - embedded.height * scale) / 2,
+          y: boxTop - boxHeight + (boxHeight - embedded.height * scale) / 2,
           width: embedded.width * scale,
           height: embedded.height * scale,
         });
         p.drawText(safe(item.name).slice(0, 90), {
           x: 42,
-          y: 37,
+          y: boxTop - boxHeight - 14,
           size: 8,
           font: regular,
         });
+        imageSlot += 1;
       }
     } catch (error) {
       throw new Error(
