@@ -687,3 +687,24 @@ footer button {
   text-underline-offset: 3px;
   font-size: 12px;
 }
+.auth-card {
+  max-width: 480px;
+  margin: 60px auto;
+}
+.auth-card fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+.auth-card form button {
+  width: 100%;
+}
+.auth-options {
+  margin-top: 20px;
+  justify-content: center;
+}
+@media (max-width: 600px) {
+  .auth-card {
+    margin: 24px 14px;
+  }
+}

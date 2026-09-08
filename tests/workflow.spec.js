@@ -8,7 +8,7 @@ test("invoice lifecycle persists attachments, exports complete PDF, and locks pa
 }) => {
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.goto("http://127.0.0.1:5173");
+  await page.goto("http://127.0.0.1:5174");
   await page
     .getByRole("button", { name: "+ New invoice", exact: true })
     .click();
@@ -180,7 +180,7 @@ test("invoice lifecycle persists attachments, exports complete PDF, and locks pa
   expect(data.revisions.length).toBeGreaterThan(3);
   const restoredContext = await browser.newContext();
   const restored = await restoredContext.newPage();
-  await restored.goto("http://127.0.0.1:5173");
+  await restored.goto("http://127.0.0.1:5174");
   await restored
     .getByRole("button", { name: "Backup & storage", exact: true })
     .click();

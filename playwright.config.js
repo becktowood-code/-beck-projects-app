@@ -7,8 +7,9 @@ export default defineConfig({
   reporter: "list",
   outputDir: "artifacts/test-results",
   webServer: {
-    command: "npm run dev -- --port 5173",
-    url: "http://127.0.0.1:5173",
+    command: "npm run dev -- --port 5174",
+    url: "http://127.0.0.1:5174",
+    env: { VITE_SUPABASE_URL: "", VITE_SUPABASE_PUBLISHABLE_KEY: "", VITE_SUPABASE_ANON_KEY: "" },
     reuseExistingServer: !process.env.CI,
   },
 });

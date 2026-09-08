@@ -4,10 +4,11 @@ import Editor, { Field } from "./components/Editor.jsx";
 import Preview, { Logo } from "./components/Preview.jsx";
 import Records from "./components/Records.jsx";
 import { locked, today } from "./domain/invoice.js";
-import { repository } from "./storage/repository.js";
+import { repository as localRepository } from "./storage/repository.js";
+import CloudAccess from "./components/CloudAccess.jsx";
 import "./style.css";
 
-function App() {
+function App({ repository, user, signOut }) {
   const [docs, setDocs] = useState([]),
     [current, setCurrent] = useState(null),
     [tab, setTab] = useState("records");
@@ -86,6 +87,40 @@ function App() {
       !dirty || window.confirm("Discard unsaved changes to this document?")
     );
   }
+  async function importBrowser() {
+    if (
+      !window.confirm(
+        `Copy saved invoices and attachments from this browser into ${user.email}? Local originals will be kept.`,
+      )
+    )
+      return;
+    await run(async () => {
+      await localRepository.migrate();
+      const result = await repository.restore(await localRepository.backup());
+      await refresh();
+      setMessage(
+        `Copied ${result.added} records to your cloud account. Skipped ${result.skipped} existing records. Local originals are unchanged.`,
+      );
+    });
+  }
+  async function leaveAccount() {
+    if (!mayLeave()) return;
+    await run(signOut);
+  }
+  useEffect(() => {
+    if (!repository.cloud) return;
+    const reload = () =>
+      repository
+        .list()
+        .then(setDocs)
+        .catch((e) => setError(`Cloud refresh failed: ${e.message}`));
+    window.addEventListener("focus", reload);
+    window.addEventListener("online", reload);
+    return () => {
+      window.removeEventListener("focus", reload);
+      window.removeEventListener("online", reload);
+    };
+  }, [repository]);
   async function newDoc(type) {
     if (!mayLeave()) return;
     await run(async () => {
@@ -168,7 +203,12 @@ function App() {
   }
   async function pdf(mode) {
     await run(async () => {
-      const d = dirty ? await save() : current;
+      const d = dirty
+        ? await save()
+        : repository.cloud
+          ? await repository.get(current.id)
+          : current;
+      if (repository.cloud) setCurrent(d);
       const { createInvoicePdf, download } = await import("./services/pdf.js");
       const blob = await createInvoicePdf(d, repository);
       if (mode === "download")
@@ -205,6 +245,15 @@ function App() {
       <header className="top">
         <Logo />
         <div className="top-actions">
+          {user && (
+            <button
+              className="secondary dark"
+              disabled={busy}
+              onClick={leaveAccount}
+            >
+              Sign out
+            </button>
+          )}
           <button
             disabled={!ready || busy}
             className="secondary dark"
@@ -222,7 +271,10 @@ function App() {
           <button
             disabled={busy}
             className={tab === "records" ? "active" : ""}
-            onClick={() => setTab("records")}
+            onClick={() => {
+              setTab("records");
+              if (repository.cloud) run(refresh);
+            }}
           >
             Invoice records
           </button>
@@ -240,7 +292,9 @@ function App() {
           >
             Backup & storage
           </button>
-          <span className="version">VERSION 2</span>
+          <span className="version">
+            {repository.cloud ? "CLOUD CONNECTED" : "LOCAL STORAGE"}
+          </span>
         </nav>
         {error && (
           <div className="notice error" role="alert">
@@ -271,9 +325,9 @@ function App() {
             <p className="eyebrow">Protect your records</p>
             <h1>Backup & storage</h1>
             <p>
-              Invoices and attachments are stored persistently in this browser
-              on this device. They are not yet synced to a cloud account.
-              Clearing site data or losing this device can remove your records.
+              {repository.cloud
+                ? `Signed in as ${user.email}. Saved invoices and attachments are stored in your private Supabase account. Sign in with this same account on another device to access them. An internet connection is required to save changes.`
+                : "Invoices and attachments are stored in this browser on this device. Cloud sync is not configured on this deployment. Clearing site data can remove local records."}
             </p>
             <p>
               Download regular backups and store them somewhere safe. Backups
@@ -306,10 +360,26 @@ function App() {
               Restore adds missing records and skips matching IDs or document
               numbers. It never replaces or unlocks existing paid records.
             </p>
+            {repository.cloud && (
+              <>
+                <h2>Move your existing records to cloud</h2>
+                <p>
+                  On the browser where you created your old invoices, copy them
+                  into this signed-in account. This includes saved attachments
+                  and history. Local originals are retained, and existing cloud
+                  records are skipped.
+                </p>
+                <button disabled={busy} onClick={importBrowser}>
+                  Copy this browser’s records to cloud
+                </button>
+              </>
+            )}
             <h2>Previous invoices</h2>
             <p>
-              Version 1 records migrate automatically when this app opens on the
-              same browser and website address. Previously downloaded PDFs that
+              {repository.cloud
+                ? "Use the copy button above on the original browser and website address to import Version 1 records. "
+                : "Version 1 records migrate automatically on the same browser and website address. "}
+              Previously downloaded PDFs that
               were never saved as records must be entered manually. Missing old
               uploads are flagged for re-upload.
             </p>
@@ -343,7 +413,9 @@ function App() {
                       ? `${current.status} record · locked from editing`
                       : dirty
                         ? "Unsaved changes — save before leaving"
-                        : "Saved on this device"}
+                        : repository.cloud
+                          ? "Saved to your cloud account"
+                          : "Saved on this device"}
                   </p>
                 </div>
                 <div className="button-row">
@@ -464,7 +536,11 @@ function App() {
           )
         )}
         <footer>
-          High-Amps Electrical Services · Records saved on this device ·{" "}
+          High-Amps Electrical Services ·{" "}
+          {repository.cloud
+            ? `Cloud account: ${user.email}`
+            : "Records saved on this device"}{" "}
+          ·{" "}
           <button className="quiet" onClick={() => setTab("backup")}>
             Back up your records
           </button>
@@ -592,6 +668,8 @@ class ErrorBoundary extends React.Component {
 }
 createRoot(document.getElementById("root")).render(
   <ErrorBoundary>
-    <App />
+    <CloudAccess>
+      {(props) => <App key={props.user?.id || "local"} {...props} />}
+    </CloudAccess>
   </ErrorBoundary>,
 );
