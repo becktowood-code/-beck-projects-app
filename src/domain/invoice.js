@@ -82,6 +82,7 @@ export function blankDocument(number, type = "Invoice") {
     status: "Draft",
     number,
     date: today(),
+    dueDate: "",
     issuedAt: null,
     paidDate: "",
     recipient: "customer",
@@ -127,6 +128,7 @@ export function validate(doc, final = false) {
     throw new Error("Invalid document.");
   if (!doc.number?.trim()) throw new Error("A document number is required.");
   if (!validDate(doc.date)) throw new Error("Enter a valid invoice date.");
+  if (doc.dueDate && !validDate(doc.dueDate)) throw new Error("Enter a valid due date.");
   if (!["customer", "contractor"].includes(doc.recipient))
     throw new Error("Choose a recipient.");
   if (final && !doc[`${doc.recipient}Name`]?.trim())

@@ -77,7 +77,7 @@ export async function createInvoicePdf(doc, repository) {
   y = 650;
   page.drawRectangle({ x: 42, y: 637, width: 528, height: 3, color: gold });
   text(`${doc.type.toUpperCase()} ${doc.number}`, { font: bold, size: 22 });
-  text(`Status: ${doc.status} | Date: ${doc.date} | ${doc.terms}`);
+  text(`Status: ${doc.status} | Invoice date: ${doc.date}${doc.dueDate ? ` | Due date: ${doc.dueDate}` : ""} | ${doc.terms}`);
   if (doc.status === "Paid")
     text(
       `PAID ${doc.paidDate || "(date not recorded in legacy data)"} | ${doc.paymentMethod || ""}`,
@@ -119,7 +119,7 @@ export async function createInvoicePdf(doc, repository) {
   y -= 12;
   for (const [label, value] of [
     ["Subtotal", totals.subtotal],
-    [`Tax (${doc.applyTax ? doc.taxRate : 0}%)`, totals.tax],
+    [doc.recipient === "contractor" ? `Sales tax - materials only (${doc.applyTax ? doc.taxRate : 0}%)` : `Sales tax (${doc.applyTax ? doc.taxRate : 0}%)`, totals.tax],
     ["Total", totals.total],
     ["Paid", totals.paid],
     ["Balance due", doc.status === "Void" ? 0 : totals.balance],
@@ -136,6 +136,8 @@ export async function createInvoicePdf(doc, repository) {
     heading("Notes");
     text(doc.notes);
   }
+  if (doc.attachments.some((a) => a.category === "Receipt / material list" && Number(a.invoiceAmount) > 0))
+    text("Materials receipts attached", { font: bold });
   for (const item of doc.attachments.filter((a) => a.showOnInvoice)) {
     if (item.missing)
       throw new Error(`Re-upload or hide the missing attachment: ${item.name}`);

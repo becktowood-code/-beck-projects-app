@@ -38,6 +38,12 @@ export default function Editor({
             onChange={(v) => set("date", v)}
           />
           <Field
+            label="Due date"
+            type="date"
+            value={doc.dueDate}
+            onChange={(v) => set("dueDate", v)}
+          />
+          <Field
             label="Project / job title"
             value={doc.projectTitle}
             onChange={(v) => set("projectTitle", v)}

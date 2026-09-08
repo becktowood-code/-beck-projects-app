@@ -23,7 +23,8 @@ export default function Preview({ doc }) {
         <div>
           <h2>{doc.type}</h2>
           <strong>{doc.number}</strong>
-          <p>{doc.date}</p>
+          <p>Invoice date: {doc.date}</p>
+          {doc.dueDate && <p>Due date: {doc.dueDate}</p>}
           <span className={`badge ${doc.status.toLowerCase()}`}>
             {doc.status}
           </span>
@@ -80,7 +81,7 @@ export default function Preview({ doc }) {
       <div className="totals">
         {[
           ["Subtotal", t.subtotal],
-          [`Tax (${doc.applyTax ? doc.taxRate : 0}%)`, t.tax],
+          [doc.recipient === "contractor" ? `Sales tax — materials only (${doc.applyTax ? doc.taxRate : 0}%)` : `Sales tax (${doc.applyTax ? doc.taxRate : 0}%)`, t.tax],
           ["Total", t.total],
           ["Paid", t.paid],
           ["Balance due", doc.status === "Void" ? 0 : t.balance],
@@ -94,6 +95,9 @@ export default function Preview({ doc }) {
       <h3>Payment methods</h3>
       <p className="prewrap">{c.payment}</p>
       <p className="prewrap">{doc.notes}</p>
+      {doc.attachments.some((a) => a.category === "Receipt / material list" && Number(a.invoiceAmount) > 0) && (
+        <p className="muted">Materials receipts attached</p>
+      )}
       {doc.status === "Void" && <p>Void reason: {doc.voidReason}</p>}
       {doc.attachments.some((a) => a.showOnInvoice) && (
         <div className="attachment-summary">
