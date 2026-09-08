@@ -6,6 +6,7 @@ import Records from "./components/Records.jsx";
 import { locked, today } from "./domain/invoice.js";
 import { repository as localRepository } from "./storage/repository.js";
 import CloudAccess from "./components/CloudAccess.jsx";
+import PastInvoiceImport from "./components/PastInvoiceImport.jsx";
 import "./style.css";
 
 function App({ repository, user, signOut }) {
@@ -101,6 +102,43 @@ function App({ repository, user, signOut }) {
       setMessage(
         `Copied ${result.added} records to your cloud account. Skipped ${result.skipped} existing records. Local originals are unchanged.`,
       );
+    });
+  }
+  async function importPastInvoice(data) {
+    await run(async () => {
+      const d = await repository.create("Invoice");
+      const attachment = {
+        id: crypto.randomUUID(),
+        name: data.file.name,
+        category: "Past invoice",
+        mimeType: data.file.type,
+        size: data.file.size,
+        showOnInvoice: false,
+      };
+      let candidate = {
+        ...d,
+        number: data.number.trim(),
+        date: data.date,
+        recipient: data.recipient,
+        [`${data.recipient}Name`]: data.name.trim(),
+        taxRate: Number(data.taxRate),
+        applyTax: Number(data.taxRate) > 0,
+        labor: [],
+        materials: [],
+        fixedItems: [{ id: crypto.randomUUID(), description: "Imported invoice total before tax", amount: Number(data.subtotal) }],
+        attachments: [attachment],
+      };
+      candidate = await repository.save(candidate, { uploads: [{ id: attachment.id, blob: data.file }] });
+      if (data.status === "Issued" || data.status === "Paid")
+        candidate = await repository.save(candidate, { action: "issue" });
+      if (data.status === "Paid")
+        candidate = await repository.save(candidate, { action: "paid", detail: { paidDate: data.paidDate, paymentMethod: "Imported" } });
+      if (data.status === "Void")
+        candidate = await repository.save(candidate, { action: "void", detail: { reason: "Imported as void" } });
+      await refresh();
+      setCurrent(candidate);
+      setTab("document");
+      setMessage(`Imported ${candidate.number} with the original file attached.`);
     });
   }
   async function leaveAccount() {
@@ -374,6 +412,7 @@ function App({ repository, user, signOut }) {
                 </button>
               </>
             )}
+            <PastInvoiceImport onImport={importPastInvoice} disabled={busy} />
             <h2>Previous invoices</h2>
             <p>
               {repository.cloud

@@ -185,7 +185,7 @@ test("invoice lifecycle persists attachments, exports complete PDF, and locks pa
     .getByRole("button", { name: "Backup & storage", exact: true })
     .click();
   await restored
-    .locator("input[type=file]")
+    .locator('input[type="file"][accept="application/json,.json"]')
     .setInputFiles("artifacts/backup.json");
   await expect(restored.getByRole("status")).toContainText(
     "Restored 1 records",
