@@ -102,10 +102,10 @@ export async function createInvoicePdf(doc, repository) {
   if (doc.projectTitle) heading(doc.projectTitle);
   if (doc.labor.length || doc.fixedItems.length) heading("Labor / Work");
   for (const row of [...doc.labor, ...doc.fixedItems]) {
-    const amount = doc.labor.includes(row) ? Number(row.hours) * Number(row.rate) : Number(row.amount);
-    if (amount > 0) {
+    const lineValue = doc.labor.includes(row) ? Number(row.hours) * Number(row.rate) : Number(row.amount);
+    if (lineValue > 0) {
       text(`${row.description}${doc.labor.includes(row) ? ` (${row.hours} hours x ${money(row.rate)})` : ""}`);
-      amount(amount);
+      amount(lineValue);
       page.drawLine({ start: { x: 42, y: y + 2 }, end: { x: 570, y: y + 2 }, thickness: 0.5, color: rgb(0.85, 0.87, 0.9) });
     }
   }
