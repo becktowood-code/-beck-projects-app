@@ -67,10 +67,11 @@ export default function Preview({ doc }) {
       <h2>{doc.projectTitle}</h2>
       <p>{doc.jobAddress}</p>
       <table>
-        <thead><tr><th>Description</th><th>Amount</th></tr></thead>
+        <thead><tr><th>Description</th><th>Details</th><th>Amount</th></tr></thead>
         <tbody>
-          {summary.work > 0 && <tr><td>Work performed</td><td>{money(summary.work)}</td></tr>}
-          {summary.materials > 0 && <tr><td>Materials and receipts</td><td>{money(summary.materials)}</td></tr>}
+          {doc.labor.map((row) => <tr key={row.id}><td>{row.description}</td><td>{row.hours} hrs × {money(row.rate)}</td><td>{money(row.hours * row.rate)}</td></tr>)}
+          {doc.fixedItems.map((row) => <tr key={row.id}><td>{row.description}</td><td>Work</td><td>{money(row.amount)}</td></tr>)}
+          {summary.materials > 0 && <tr><td>Materials and receipts</td><td>Combined total</td><td>{money(summary.materials)}</td></tr>}
         </tbody>
       </table>
       <div className="totals">

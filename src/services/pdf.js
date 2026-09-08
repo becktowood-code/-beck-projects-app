@@ -95,8 +95,11 @@ export async function createInvoicePdf(doc, repository) {
   if (doc.jobAddress) text(`Job address: ${doc.jobAddress}`);
   if (doc.projectTitle) heading(doc.projectTitle);
   heading("Work and materials");
-  for (const [label, value] of [["Work performed", summary.work], ["Materials and receipts", summary.materials]])
-    if (value > 0) text(`${label}: ${money(value)}`);
+  for (const row of [...doc.labor, ...doc.fixedItems]) {
+    const amount = doc.labor.includes(row) ? Number(row.hours) * Number(row.rate) : Number(row.amount);
+    if (amount > 0) text(`${row.description}: ${money(amount)}`);
+  }
+  if (summary.materials > 0) text(`Materials and receipts (combined): ${money(summary.materials)}`);
   ensure(125);
   y -= 12;
   for (const [label, value] of [
