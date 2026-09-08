@@ -27,14 +27,29 @@ export function lineAmount(kind, row) {
   return cents(row.amount);
 }
 export function calculate(doc) {
-  const subtotalCents = ["labor", "materials", "fixedItems"].reduce(
-    (sum, kind) =>
-      sum + doc[kind].reduce((s, row) => s + lineAmount(kind, row), 0),
-    0,
-  );
-  const taxCents = doc.applyTax
-    ? Math.round((subtotalCents * Number(doc.taxRate)) / 100)
-    : 0;
+  const rate = Number(doc.taxRate) || 0;
+  const laborTaxable = doc.recipient !== "contractor";
+  let subtotalCents = 0;
+  let taxCents = 0;
+  for (const [kind, taxable] of [["labor", laborTaxable], ["materials", true], ["fixedItems", true]]) {
+    for (const row of doc[kind] || []) {
+      const amount = lineAmount(kind, row);
+      subtotalCents += amount;
+      if (doc.applyTax && taxable) taxCents += Math.round((amount * rate) / 100);
+    }
+  }
+  for (const receipt of doc.attachments || []) {
+    const gross = cents(receipt.invoiceAmount);
+    if (!gross || receipt.category !== "Receipt / material list") continue;
+    if (doc.applyTax && receipt.taxIncluded) {
+      const net = Math.round((gross * 100) / (100 + rate));
+      subtotalCents += net;
+      taxCents += gross - net;
+    } else {
+      subtotalCents += gross;
+      if (doc.applyTax) taxCents += Math.round((gross * rate) / 100);
+    }
+  }
   const totalCents = subtotalCents + taxCents;
   const paidCents =
     doc.status === "Paid"
@@ -134,6 +149,10 @@ export function validate(doc, final = false) {
     throw new Error("Invoice total is too large.");
   if (doc.status === "Paid" && doc.paidDate && !validDate(doc.paidDate))
     throw new Error("Invalid paid date.");
+  for (const attachment of doc.attachments || [])
+    if (attachment.invoiceAmount !== "" && attachment.invoiceAmount != null &&
+        (!Number.isFinite(Number(attachment.invoiceAmount)) || Number(attachment.invoiceAmount) < 0))
+      throw new Error("Receipt values must be zero or positive.");
 }
 export function validDate(value) {
   return (

@@ -25,6 +25,15 @@ test("currency rounds each extended line then tax, including markup", () => {
     balance: 245.18,
   });
 });
+
+test("receipt totals include tax once and contractor labor is tax exempt", () => {
+  const d = blankDocument("HA-1");
+  d.recipient = "contractor";
+  d.labor = [{ description: "Labor", hours: 1, rate: 100 }];
+  d.materials = [];
+  d.attachments = [{ category: "Receipt / material list", invoiceAmount: 107, taxIncluded: true }];
+  assert.deepEqual(calculate(d), { subtotal: 200, tax: 7, total: 207, paid: 0, balance: 207 });
+});
 test("draft -> issued -> corrected -> reopened -> reissued -> paid and immutable", async () => {
   const r = repo();
   let d = await r.create();

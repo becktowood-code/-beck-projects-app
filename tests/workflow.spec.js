@@ -154,7 +154,7 @@ test("invoice lifecycle persists attachments, exports complete PDF, and locks pa
   await expect(
     page.getByRole("button", { name: "Open", exact: true }),
   ).toHaveCount(1);
-  await expect(page.locator(".records-table")).toContainText("$609.90");
+  await expect(page.locator(".records-table")).toContainText("$578.40");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
     path: "artifacts/records-mobile.png",

@@ -213,6 +213,8 @@ function App({ repository, user, signOut }) {
           size: blob.size,
           category,
           showOnInvoice: true,
+          invoiceAmount: category === "Receipt / material list" ? "" : undefined,
+          taxIncluded: category === "Receipt / material list" ? true : undefined,
           missing: false,
         })),
       ],

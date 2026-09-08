@@ -244,6 +244,34 @@ export default function Editor({
                 {a.missing ? " · Original file missing — upload again" : ""}
               </small>
             </div>
+            {a.category === "Receipt / material list" && (
+              <div className="receipt-value">
+                <Field
+                  label="Receipt total including tax ($)"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={a.invoiceAmount}
+                  onChange={(value) =>
+                    set("attachments", doc.attachments.map((f) =>
+                      f.id === a.id ? { ...f, invoiceAmount: value } : f,
+                    ))
+                  }
+                />
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={a.taxIncluded !== false}
+                    onChange={(e) =>
+                      set("attachments", doc.attachments.map((f) =>
+                        f.id === a.id ? { ...f, taxIncluded: e.target.checked } : f,
+                      ))
+                    }
+                  />
+                  Tax included in receipt total
+                </label>
+              </div>
+            )}
             <label className="check">
               <input
                 type="checkbox"
