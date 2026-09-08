@@ -450,6 +450,18 @@ small {
 .paper th {
   padding: 10px 6px;
 }
+.paper .invoice-lines tr {
+  border-bottom: 1px solid #d9dee5;
+}
+.paper .invoice-lines td:first-child {
+  text-align: left;
+}
+.paper .invoice-lines small {
+  display: block;
+  color: #6d7887;
+  font-size: 10px;
+  margin-top: 3px;
+}
 .paper td:last-child,
 .paper th:last-child {
   text-align: right;

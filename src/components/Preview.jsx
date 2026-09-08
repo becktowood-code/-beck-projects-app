@@ -66,14 +66,17 @@ export default function Preview({ doc }) {
       )}
       <h2>{doc.projectTitle}</h2>
       <p>{doc.jobAddress}</p>
-      <table>
-        <thead><tr><th>Description</th><th>Details</th><th>Amount</th></tr></thead>
-        <tbody>
-          {doc.labor.map((row) => <tr key={row.id}><td>{row.description}</td><td>{row.hours} hrs × {money(row.rate)}</td><td>{money(row.hours * row.rate)}</td></tr>)}
-          {doc.fixedItems.map((row) => <tr key={row.id}><td>{row.description}</td><td>Work</td><td>{money(row.amount)}</td></tr>)}
-          {summary.materials > 0 && <tr><td>Materials and receipts</td><td>Combined total</td><td>{money(summary.materials)}</td></tr>}
-        </tbody>
-      </table>
+      {(doc.labor.length > 0 || doc.fixedItems.length > 0) && <>
+        <h3>Labor / Work</h3>
+        <table className="invoice-lines"><tbody>
+          {doc.labor.map((row) => <tr key={row.id}><td>{row.description}<small>{row.hours} hrs × {money(row.rate)}</small></td><td>{money(row.hours * row.rate)}</td></tr>)}
+          {doc.fixedItems.map((row) => <tr key={row.id}><td>{row.description}</td><td>{money(row.amount)}</td></tr>)}
+        </tbody></table>
+      </>}
+      {summary.materials > 0 && <>
+        <h3>Materials</h3>
+        <table className="invoice-lines"><tbody><tr><td>Materials and receipts</td><td>{money(summary.materials)}</td></tr></tbody></table>
+      </>}
       <div className="totals">
         {[
           ["Subtotal", t.subtotal],

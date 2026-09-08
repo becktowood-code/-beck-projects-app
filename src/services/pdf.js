@@ -62,6 +62,12 @@ export async function createInvoicePdf(doc, repository) {
     y -= 12;
     text(value, { font: bold, size: 12 });
   }
+  function amount(value) {
+    const label = money(value);
+    ensure(15);
+    page.drawText(label, { x: 570 - regular.widthOfTextAtSize(label, 10), y, size: 10, font: regular, color: ink });
+    y -= 15;
+  }
   newPage();
   const logo = await pdf.embedPng(await (await fetch(logoUrl)).arrayBuffer());
   page.drawImage(logo, { x: 42, y: 676, width: 76, height: 76 });
@@ -94,12 +100,21 @@ export async function createInvoicePdf(doc, repository) {
     text(`Customer: ${doc.customerName} | Contractor: ${doc.contractorName}`);
   if (doc.jobAddress) text(`Job address: ${doc.jobAddress}`);
   if (doc.projectTitle) heading(doc.projectTitle);
-  heading("Work and materials");
+  if (doc.labor.length || doc.fixedItems.length) heading("Labor / Work");
   for (const row of [...doc.labor, ...doc.fixedItems]) {
     const amount = doc.labor.includes(row) ? Number(row.hours) * Number(row.rate) : Number(row.amount);
-    if (amount > 0) text(`${row.description}: ${money(amount)}`);
+    if (amount > 0) {
+      text(`${row.description}${doc.labor.includes(row) ? ` (${row.hours} hours x ${money(row.rate)})` : ""}`);
+      amount(amount);
+      page.drawLine({ start: { x: 42, y: y + 2 }, end: { x: 570, y: y + 2 }, thickness: 0.5, color: rgb(0.85, 0.87, 0.9) });
+    }
   }
-  if (summary.materials > 0) text(`Materials and receipts (combined): ${money(summary.materials)}`);
+  if (summary.materials > 0) {
+    heading("Materials");
+    text("Materials and receipts (combined)");
+    amount(summary.materials);
+    page.drawLine({ start: { x: 42, y: y + 2 }, end: { x: 570, y: y + 2 }, thickness: 0.5, color: rgb(0.85, 0.87, 0.9) });
+  }
   ensure(125);
   y -= 12;
   for (const [label, value] of [
