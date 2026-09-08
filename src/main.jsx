@@ -5,6 +5,7 @@ import Preview, { Logo } from "./components/Preview.jsx";
 import Records from "./components/Records.jsx";
 import { locked, today } from "./domain/invoice.js";
 import { repository as localRepository } from "./storage/repository.js";
+import { compressImage } from "./storage/compressImage.js";
 import CloudAccess from "./components/CloudAccess.jsx";
 import PastInvoiceImport from "./components/PastInvoiceImport.jsx";
 import "./style.css";
@@ -186,7 +187,7 @@ function App({ repository, user, signOut }) {
     setDirty(true);
     setMessage("");
   }
-  function addFiles(files, category) {
+  async function addFiles(files, category) {
     const allowed = [
       "image/png",
       "image/jpeg",
@@ -201,14 +202,25 @@ function App({ repository, user, signOut }) {
       setError("Each attachment must be 30 MB or smaller.");
       return;
     }
-    const added = files.map((blob) => ({ id: crypto.randomUUID(), blob }));
+    let compressed;
+    try {
+      compressed = await Promise.all(files.map(compressImage));
+    } catch (e) {
+      setError(e.message);
+      return;
+    }
+    const added = compressed.map((blob, index) => ({
+      id: crypto.randomUUID(),
+      blob,
+      originalName: files[index].name,
+    }));
     setUploads((old) => [...old, ...added]);
     update({
       attachments: [
         ...current.attachments,
-        ...added.map(({ id, blob }) => ({
+        ...added.map(({ id, blob, originalName }) => ({
           id,
-          name: blob.name,
+          name: originalName,
           type: blob.type,
           size: blob.size,
           category,
