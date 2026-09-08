@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
-import { calculate, lineAmount, money, COMPANY } from "../domain/invoice.js";
+import { calculate, invoiceSummary, money, COMPANY } from "../domain/invoice.js";
 
 export { download } from "./download.js";
 const safe = (value) =>
@@ -12,7 +12,8 @@ export async function createInvoicePdf(doc, repository) {
     regular = await pdf.embedFont(StandardFonts.Helvetica),
     bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const company = doc.company || COMPANY,
-    totals = calculate(doc);
+    totals = calculate(doc),
+    summary = invoiceSummary(doc);
   const ink = rgb(0.08, 0.12, 0.18),
     gray = rgb(0.4, 0.44, 0.5),
     gold = rgb(0.95, 0.7, 0.13);
@@ -93,40 +94,9 @@ export async function createInvoicePdf(doc, repository) {
     text(`Customer: ${doc.customerName} | Contractor: ${doc.contractorName}`);
   if (doc.jobAddress) text(`Job address: ${doc.jobAddress}`);
   if (doc.projectTitle) heading(doc.projectTitle);
-  for (const [kind, label] of [
-    ["labor", "Labor"],
-    ["materials", "Materials"],
-    ["fixedItems", "Fixed costs"],
-  ]) {
-    if (!doc[kind].length) continue;
-    heading(label);
-    for (const row of doc[kind]) {
-      const description = wrap(row.description, regular, 10, 330);
-      ensure(Math.min(640, description.length * 15 + 32));
-      for (let i = 0; i < description.length; i++) {
-        ensure(15);
-        if (i === 0) {
-          const amount = money(lineAmount(kind, row) / 100);
-          page.drawText(amount, {
-            x: 570 - regular.widthOfTextAtSize(amount, 10),
-            y,
-            size: 10,
-            font: regular,
-            color: ink,
-          });
-        }
-        text(description[i], { width: 330 });
-      }
-      const detail =
-        kind === "labor"
-          ? `${row.hours} hours x ${money(row.rate)}`
-          : kind === "materials"
-            ? `${row.qty} x ${money(row.cost)} | Markup ${row.markup || 0}%`
-            : "";
-      if (detail) text(detail, { size: 9, color: gray });
-      y -= 5;
-    }
-  }
+  heading("Work and materials");
+  for (const [label, value] of [["Work performed", summary.work], ["Materials and receipts", summary.materials]])
+    if (value > 0) text(`${label}: ${money(value)}`);
   ensure(125);
   y -= 12;
   for (const [label, value] of [

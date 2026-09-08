@@ -1,6 +1,6 @@
 import React from "react";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
-import { calculate, COMPANY, lineAmount, money } from "../domain/invoice.js";
+import { calculate, COMPANY, invoiceSummary, money } from "../domain/invoice.js";
 export function Logo() {
   return (
     <div className="brand">
@@ -14,6 +14,7 @@ export function Logo() {
 }
 export default function Preview({ doc }) {
   const t = calculate(doc),
+    summary = invoiceSummary(doc),
     c = doc.company || COMPANY;
   return (
     <article className="paper">
@@ -65,44 +66,13 @@ export default function Preview({ doc }) {
       )}
       <h2>{doc.projectTitle}</h2>
       <p>{doc.jobAddress}</p>
-      {["labor", "materials", "fixedItems"].map(
-        (kind) =>
-          doc[kind].length > 0 && (
-            <div key={kind}>
-              <h3>
-                {kind === "fixedItems"
-                  ? "Fixed costs"
-                  : kind === "labor"
-                    ? "Labor"
-                    : "Materials"}
-              </h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Description</th>
-                    <th>Details</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {doc[kind].map((row) => (
-                    <tr key={row.id}>
-                      <td>{row.description}</td>
-                      <td>
-                        {kind === "labor"
-                          ? `${row.hours} hrs × ${money(row.rate)}`
-                          : kind === "materials"
-                            ? `${row.qty} × ${money(row.cost)}${Number(row.markup) ? ` + ${row.markup}%` : ""}`
-                            : ""}
-                      </td>
-                      <td>{money(lineAmount(kind, row) / 100)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ),
-      )}
+      <table>
+        <thead><tr><th>Description</th><th>Amount</th></tr></thead>
+        <tbody>
+          {summary.work > 0 && <tr><td>Work performed</td><td>{money(summary.work)}</td></tr>}
+          {summary.materials > 0 && <tr><td>Materials and receipts</td><td>{money(summary.materials)}</td></tr>}
+        </tbody>
+      </table>
       <div className="totals">
         {[
           ["Subtotal", t.subtotal],

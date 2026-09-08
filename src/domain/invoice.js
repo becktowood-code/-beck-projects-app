@@ -63,6 +63,17 @@ export function calculate(doc) {
     balance: (totalCents - paidCents) / 100,
   };
 }
+export function invoiceSummary(doc) {
+  const workCents = (doc.labor || []).reduce((sum, row) => sum + lineAmount("labor", row), 0) +
+    (doc.fixedItems || []).reduce((sum, row) => sum + lineAmount("fixedItems", row), 0);
+  const materialCents = (doc.materials || []).reduce((sum, row) => sum + lineAmount("materials", row), 0) +
+    (doc.attachments || []).reduce((sum, receipt) => {
+      if (receipt.category !== "Receipt / material list") return sum;
+      const gross = cents(receipt.invoiceAmount);
+      return sum + (receipt.taxIncluded && doc.applyTax ? Math.round((gross * 100) / (100 + Number(doc.taxRate || 0))) : gross);
+    }, 0);
+  return { work: workCents / 100, materials: materialCents / 100 };
+}
 export function blankDocument(number, type = "Invoice") {
   return {
     id: crypto.randomUUID(),
