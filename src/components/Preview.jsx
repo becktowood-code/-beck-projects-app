@@ -1,6 +1,11 @@
 import React from "react";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
-import { calculate, COMPANY, invoiceSummary, money } from "../domain/invoice.js";
+import {
+  calculate,
+  COMPANY,
+  billingBreakdown,
+  money,
+} from "../domain/invoice.js";
 export function Logo() {
   return (
     <div className="brand">
@@ -14,7 +19,7 @@ export function Logo() {
 }
 export default function Preview({ doc }) {
   const t = calculate(doc),
-    summary = invoiceSummary(doc),
+    breakdown = billingBreakdown(doc),
     c = doc.company || COMPANY;
   return (
     <article className="paper">
@@ -67,21 +72,54 @@ export default function Preview({ doc }) {
       )}
       <h2>{doc.projectTitle}</h2>
       <p>{doc.jobAddress}</p>
-      {(doc.labor.length > 0 || doc.fixedItems.length > 0) && <>
-        <h3>Labor / Work</h3>
-        <table className="invoice-lines"><tbody>
-          {doc.labor.map((row) => <tr key={row.id}><td>{row.description}<small>{row.hours} hrs × {money(row.rate)}</small></td><td>{money(row.hours * row.rate)}</td></tr>)}
-          {doc.fixedItems.map((row) => <tr key={row.id}><td>{row.description}</td><td>{money(row.amount)}</td></tr>)}
-        </tbody></table>
-      </>}
-      {summary.materials > 0 && <>
-        <h3>Materials</h3>
-        <table className="invoice-lines"><tbody><tr><td>Materials and receipts</td><td>{money(summary.materials)}</td></tr></tbody></table>
-      </>}
+      {[
+        [
+          "Labor / Work",
+          "Labor Total",
+          breakdown.labor,
+          breakdown.laborTax,
+          breakdown.laborTotal,
+        ],
+        [
+          "Materials",
+          "Materials Total",
+          breakdown.materials,
+          breakdown.materialsTax,
+          breakdown.materialsTotal,
+        ],
+      ].map(([title, label, rows, tax, total]) => (
+        <section key={title} aria-label={title}>
+          <h3>{title}</h3>
+          <table className="invoice-lines">
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>
+                    {row.description}
+                    {row.source && <small>Source: {row.source}</small>}
+                    {row.detail && <small>{row.detail}</small>}
+                  </td>
+                  <td>{money(row.net / 100)}</td>
+                </tr>
+              ))}
+              {tax > 0 && (
+                <tr>
+                  <td>Sales tax ({doc.taxRate}%)</td>
+                  <td>{money(tax / 100)}</td>
+                </tr>
+              )}
+              <tr className="section-total">
+                <th scope="row">{label}</th>
+                <td>
+                  <strong>{money(total / 100)}</strong>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      ))}
       <div className="totals">
         {[
-          ["Subtotal", t.subtotal],
-          [doc.recipient === "contractor" ? `Sales tax — materials only (${doc.applyTax ? doc.taxRate : 0}%)` : `Sales tax (${doc.applyTax ? doc.taxRate : 0}%)`, t.tax],
           ["Total", t.total],
           ["Paid", t.paid],
           ["Balance due", doc.status === "Void" ? 0 : t.balance],
@@ -95,9 +133,11 @@ export default function Preview({ doc }) {
       <h3>Payment methods</h3>
       <p className="prewrap">{c.payment}</p>
       <p className="prewrap">{doc.notes}</p>
-      {doc.attachments.some((a) => a.category === "Receipt / material list" && Number(a.invoiceAmount) > 0) && (
-        <p className="muted">Materials receipts attached</p>
-      )}
+      {doc.attachments.some(
+        (a) =>
+          a.category === "Receipt / material list" &&
+          Number(a.invoiceAmount) > 0,
+      ) && <p className="muted">Materials receipts attached</p>}
       {doc.status === "Void" && <p>Void reason: {doc.voidReason}</p>}
       {doc.attachments.some((a) => a.showOnInvoice) && (
         <div className="attachment-summary">

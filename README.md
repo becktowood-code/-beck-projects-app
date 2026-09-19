@@ -67,3 +67,7 @@ npm run test:e2e
 ```
 
 This checks issuing, correcting, reopening, PDF download with oversized image and two PDF attachment pages, paid locking, reload persistence, mobile layout, search and backup/restore. The test starts a local server automatically when needed.
+
+## Itemized billing
+
+Invoices and quotes list every labor/fixed-cost line, then Labor Total, followed by each manual material and charged receipt. Each section includes its applicable sales tax; Total equals Labor Total + Materials Total. Existing customer/contractor tax rules, markup, payment balances and saved records remain supported. Material entries and receipts support descriptions and optional source/supplier names. Receipt amounts marked tax-inclusive are not taxed twice. Enter a purchase as manual items or a receipt amount, not both; attachments with no amount remain supporting documents. Preview and downloaded PDFs use the same cents-based breakdown.

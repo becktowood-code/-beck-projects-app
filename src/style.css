@@ -720,3 +720,7 @@ footer button {
     margin: 24px 14px;
   }
 }
+
+.invoice-lines .section-total th { text-align: left; }
+.invoice-lines .section-total { border-top: 2px solid #d6dbe1; }
+.invoice-lines td:first-child { overflow-wrap: anywhere; }

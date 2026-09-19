@@ -114,9 +114,10 @@ export default function Editor({
           [
             "materials",
             "Materials",
-            { description: "", qty: 1, cost: 0, markup: 0 },
+            { description: "", source: "", qty: 1, cost: 0, markup: 0 },
             [
               ["description", "Description"],
+              ["source", "Source / supplier"],
               ["qty", "Quantity"],
               ["cost", "Unit cost ($)"],
               ["markup", "Markup (%)"],
@@ -140,9 +141,19 @@ export default function Editor({
                   <Field
                     key={key}
                     label={`${title} ${index + 1} ${label}`}
-                    type={key === "description" ? "text" : "number"}
-                    min={key === "description" ? undefined : 0}
-                    step={key === "description" ? undefined : "any"}
+                    type={
+                      ["description", "source"].includes(key)
+                        ? "text"
+                        : "number"
+                    }
+                    min={
+                      ["description", "source"].includes(key) ? undefined : 0
+                    }
+                    step={
+                      ["description", "source"].includes(key)
+                        ? undefined
+                        : "any"
+                    }
                     value={row[key]}
                     onChange={(value) =>
                       set(
@@ -214,8 +225,9 @@ export default function Editor({
       <section className="card">
         <h2>Receipts, material lists & photos</h2>
         <p className="muted">
-          Files are retained with this record after saving. Images and each PDF
-          page fit on a full PDF page.
+          Add multiple receipts and enter a description, source and amount for
+          each. Enter each purchase once: as manual material items or as a
+          receipt amount. Files are retained with this record after saving.
         </p>
         <label>
           Upload receipts / material lists
@@ -256,34 +268,63 @@ export default function Editor({
                 value={a.title || ""}
                 placeholder={a.name}
                 onChange={(value) =>
-                  set("attachments", doc.attachments.map((f) =>
-                    f.id === a.id ? { ...f, title: value } : f,
-                  ))
+                  set(
+                    "attachments",
+                    doc.attachments.map((f) =>
+                      f.id === a.id ? { ...f, title: value } : f,
+                    ),
+                  )
                 }
               />
             )}
             {a.category === "Receipt / material list" && (
               <div className="receipt-value">
+                {[
+                  ["description", "Material description"],
+                  ["source", "Material source / supplier"],
+                ].map(([key, label]) => (
+                  <Field
+                    key={key}
+                    label={label}
+                    value={a[key] || ""}
+                    onChange={(value) =>
+                      set(
+                        "attachments",
+                        doc.attachments.map((f) =>
+                          f.id === a.id ? { ...f, [key]: value } : f,
+                        ),
+                      )
+                    }
+                  />
+                ))}
                 <Field
-                  label="Receipt total including tax ($)"
+                  label="Receipt amount ($)"
                   type="number"
                   min="0"
                   step="0.01"
                   value={a.invoiceAmount}
                   onChange={(value) =>
-                    set("attachments", doc.attachments.map((f) =>
-                      f.id === a.id ? { ...f, invoiceAmount: value } : f,
-                    ))
+                    set(
+                      "attachments",
+                      doc.attachments.map((f) =>
+                        f.id === a.id ? { ...f, invoiceAmount: value } : f,
+                      ),
+                    )
                   }
                 />
                 <label className="check">
                   <input
                     type="checkbox"
-                    checked={a.taxIncluded !== false}
+                    checked={Boolean(a.taxIncluded)}
                     onChange={(e) =>
-                      set("attachments", doc.attachments.map((f) =>
-                        f.id === a.id ? { ...f, taxIncluded: e.target.checked } : f,
-                      ))
+                      set(
+                        "attachments",
+                        doc.attachments.map((f) =>
+                          f.id === a.id
+                            ? { ...f, taxIncluded: e.target.checked }
+                            : f,
+                        ),
+                      )
                     }
                   />
                   Tax included in receipt total

@@ -26,31 +26,90 @@ export function lineAmount(kind, row) {
     );
   return cents(row.amount);
 }
-export function calculate(doc) {
+// Keep each line and its tax in cents so preview, PDF and records agree.
+export function billingBreakdown(doc) {
   const rate = Number(doc.taxRate) || 0;
-  const laborTaxable = doc.recipient !== "contractor";
-  let subtotalCents = 0;
-  let taxCents = 0;
-  for (const [kind, taxable] of [["labor", laborTaxable], ["materials", true], ["fixedItems", true]]) {
-    for (const row of doc[kind] || []) {
-      const amount = lineAmount(kind, row);
-      subtotalCents += amount;
-      if (doc.applyTax && taxable) taxCents += Math.round((amount * rate) / 100);
-    }
-  }
-  for (const receipt of doc.attachments || []) {
+  const makeLine = (kind, row, index) => {
+    const net = lineAmount(kind, row);
+    const tax =
+      doc.applyTax && (kind !== "labor" || doc.recipient !== "contractor")
+        ? Math.round((net * rate) / 100)
+        : 0;
+    return {
+      id: kind + "-" + (row.id || index),
+      description: row.description || "Material",
+      source: row.source || "",
+      net,
+      tax,
+      detail:
+        kind === "labor"
+          ? row.hours + " hrs × " + money(row.rate)
+          : kind === "materials"
+            ? row.qty +
+              " × " +
+              money(row.cost) +
+              (Number(row.markup) ? " + " + row.markup + "% markup" : "")
+            : "",
+    };
+  };
+  const labor = [
+    ...(doc.labor || []).map((r, i) => makeLine("labor", r, i)),
+    ...(doc.fixedItems || []).map((r, i) => makeLine("fixedItems", r, i)),
+  ];
+  const materials = (doc.materials || []).map((r, i) =>
+    makeLine("materials", r, i),
+  );
+  for (const [i, receipt] of (doc.attachments || []).entries()) {
+    if (
+      receipt.category !== "Receipt / material list" ||
+      !Number(receipt.invoiceAmount)
+    )
+      continue;
     const gross = cents(receipt.invoiceAmount);
-    if (!gross || receipt.category !== "Receipt / material list") continue;
-    if (doc.applyTax && receipt.taxIncluded) {
-      const net = Math.round((gross * 100) / (100 + rate));
-      subtotalCents += net;
-      taxCents += gross - net;
-    } else {
-      subtotalCents += gross;
-      if (doc.applyTax) taxCents += Math.round((gross * rate) / 100);
-    }
+    const included = Boolean(receipt.taxIncluded);
+    const net =
+      doc.applyTax && included
+        ? Math.round((gross * 100) / (100 + rate))
+        : gross;
+    const tax = !doc.applyTax
+      ? 0
+      : included
+        ? gross - net
+        : Math.round((net * rate) / 100);
+    materials.push({
+      id: "receipt-" + (receipt.id || i),
+      description:
+        receipt.description ||
+        receipt.title ||
+        receipt.name ||
+        "Material receipt",
+      source: receipt.source || "",
+      detail: "Receipt: " + (receipt.name || "Material receipt"),
+      net,
+      tax,
+    });
   }
-  const totalCents = subtotalCents + taxCents;
+  const sum = (rows, key) => rows.reduce((n, r) => n + r[key], 0);
+  const laborNet = sum(labor, "net"),
+    laborTax = sum(labor, "tax");
+  const materialsNet = sum(materials, "net"),
+    materialsTax = sum(materials, "tax");
+  return {
+    labor,
+    materials,
+    laborNet,
+    laborTax,
+    materialsNet,
+    materialsTax,
+    laborTotal: laborNet + laborTax,
+    materialsTotal: materialsNet + materialsTax,
+  };
+}
+export function calculate(doc) {
+  const b = billingBreakdown(doc);
+  const subtotalCents = b.laborNet + b.materialsNet;
+  const taxCents = b.laborTax + b.materialsTax;
+  const totalCents = b.laborTotal + b.materialsTotal;
   const paidCents =
     doc.status === "Paid"
       ? totalCents
@@ -64,15 +123,8 @@ export function calculate(doc) {
   };
 }
 export function invoiceSummary(doc) {
-  const workCents = (doc.labor || []).reduce((sum, row) => sum + lineAmount("labor", row), 0) +
-    (doc.fixedItems || []).reduce((sum, row) => sum + lineAmount("fixedItems", row), 0);
-  const materialCents = (doc.materials || []).reduce((sum, row) => sum + lineAmount("materials", row), 0) +
-    (doc.attachments || []).reduce((sum, receipt) => {
-      if (receipt.category !== "Receipt / material list") return sum;
-      const gross = cents(receipt.invoiceAmount);
-      return sum + (receipt.taxIncluded && doc.applyTax ? Math.round((gross * 100) / (100 + Number(doc.taxRate || 0))) : gross);
-    }, 0);
-  return { work: workCents / 100, materials: materialCents / 100 };
+  const b = billingBreakdown(doc);
+  return { work: b.laborNet / 100, materials: b.materialsNet / 100 };
 }
 export function blankDocument(number, type = "Invoice") {
   return {
@@ -128,7 +180,8 @@ export function validate(doc, final = false) {
     throw new Error("Invalid document.");
   if (!doc.number?.trim()) throw new Error("A document number is required.");
   if (!validDate(doc.date)) throw new Error("Enter a valid invoice date.");
-  if (doc.dueDate && !validDate(doc.dueDate)) throw new Error("Enter a valid due date.");
+  if (doc.dueDate && !validDate(doc.dueDate))
+    throw new Error("Enter a valid due date.");
   if (!["customer", "contractor"].includes(doc.recipient))
     throw new Error("Choose a recipient.");
   if (final && !doc[`${doc.recipient}Name`]?.trim())
@@ -163,8 +216,12 @@ export function validate(doc, final = false) {
   if (doc.status === "Paid" && doc.paidDate && !validDate(doc.paidDate))
     throw new Error("Invalid paid date.");
   for (const attachment of doc.attachments || [])
-    if (attachment.invoiceAmount !== "" && attachment.invoiceAmount != null &&
-        (!Number.isFinite(Number(attachment.invoiceAmount)) || Number(attachment.invoiceAmount) < 0))
+    if (
+      attachment.invoiceAmount !== "" &&
+      attachment.invoiceAmount != null &&
+      (!Number.isFinite(Number(attachment.invoiceAmount)) ||
+        Number(attachment.invoiceAmount) < 0)
+    )
       throw new Error("Receipt values must be zero or positive.");
 }
 export function validDate(value) {

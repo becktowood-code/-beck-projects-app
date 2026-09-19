@@ -1,6 +1,11 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
-import { calculate, invoiceSummary, money, COMPANY } from "../domain/invoice.js";
+import {
+  calculate,
+  billingBreakdown,
+  money,
+  COMPANY,
+} from "../domain/invoice.js";
 
 export { download } from "./download.js";
 const safe = (value) =>
@@ -13,7 +18,7 @@ export async function createInvoicePdf(doc, repository) {
     bold = await pdf.embedFont(StandardFonts.HelveticaBold);
   const company = doc.company || COMPANY,
     totals = calculate(doc),
-    summary = invoiceSummary(doc);
+    breakdown = billingBreakdown(doc);
   const ink = rgb(0.08, 0.12, 0.18),
     gray = rgb(0.4, 0.44, 0.5),
     gold = rgb(0.95, 0.7, 0.13);
@@ -65,7 +70,13 @@ export async function createInvoicePdf(doc, repository) {
   function amount(value) {
     const label = money(value);
     ensure(15);
-    page.drawText(label, { x: 570 - regular.widthOfTextAtSize(label, 10), y, size: 10, font: regular, color: ink });
+    page.drawText(label, {
+      x: 570 - regular.widthOfTextAtSize(label, 10),
+      y,
+      size: 10,
+      font: regular,
+      color: ink,
+    });
     y -= 15;
   }
   newPage();
@@ -77,7 +88,9 @@ export async function createInvoicePdf(doc, repository) {
   y = 650;
   page.drawRectangle({ x: 42, y: 637, width: 528, height: 3, color: gold });
   text(`${doc.type.toUpperCase()} ${doc.number}`, { font: bold, size: 22 });
-  text(`Status: ${doc.status} | Invoice date: ${doc.date}${doc.dueDate ? ` | Due date: ${doc.dueDate}` : ""} | ${doc.terms}`);
+  text(
+    `Status: ${doc.status} | Invoice date: ${doc.date}${doc.dueDate ? ` | Due date: ${doc.dueDate}` : ""} | ${doc.terms}`,
+  );
   if (doc.status === "Paid")
     text(
       `PAID ${doc.paidDate || "(date not recorded in legacy data)"} | ${doc.paymentMethod || ""}`,
@@ -100,26 +113,36 @@ export async function createInvoicePdf(doc, repository) {
     text(`Customer: ${doc.customerName} | Contractor: ${doc.contractorName}`);
   if (doc.jobAddress) text(`Job address: ${doc.jobAddress}`);
   if (doc.projectTitle) heading(doc.projectTitle);
-  if (doc.labor.length || doc.fixedItems.length) heading("Labor / Work");
-  for (const row of [...doc.labor, ...doc.fixedItems]) {
-    const lineValue = doc.labor.includes(row) ? Number(row.hours) * Number(row.rate) : Number(row.amount);
-    if (lineValue > 0) {
-      text(`${row.description}${doc.labor.includes(row) ? ` (${row.hours} hours x ${money(row.rate)})` : ""}`);
-      amount(lineValue);
-      page.drawLine({ start: { x: 42, y: y + 2 }, end: { x: 570, y: y + 2 }, thickness: 0.5, color: rgb(0.85, 0.87, 0.9) });
+  for (const [title, label, rows, tax, total] of [
+    [
+      "Labor / Work",
+      "Labor Total",
+      breakdown.labor,
+      breakdown.laborTax,
+      breakdown.laborTotal,
+    ],
+    [
+      "Materials",
+      "Materials Total",
+      breakdown.materials,
+      breakdown.materialsTax,
+      breakdown.materialsTotal,
+    ],
+  ]) {
+    heading(title);
+    for (const row of rows) {
+      text(row.description);
+      if (row.source) text("Source: " + row.source, { color: gray });
+      if (row.detail) text(row.detail, { color: gray });
+      amount(row.net / 100);
     }
-  }
-  if (summary.materials > 0) {
-    heading("Materials");
-    text("Materials and receipts (combined)");
-    amount(summary.materials);
-    page.drawLine({ start: { x: 42, y: y + 2 }, end: { x: 570, y: y + 2 }, thickness: 0.5, color: rgb(0.85, 0.87, 0.9) });
+    if (tax > 0) text("Sales tax (" + doc.taxRate + "%): " + money(tax / 100));
+    ensure(30);
+    text(label + ": " + money(total / 100), { font: bold, size: 12 });
   }
   ensure(125);
   y -= 12;
   for (const [label, value] of [
-    ["Subtotal", totals.subtotal],
-    [doc.recipient === "contractor" ? `Sales tax - materials only (${doc.applyTax ? doc.taxRate : 0}%)` : `Sales tax (${doc.applyTax ? doc.taxRate : 0}%)`, totals.tax],
     ["Total", totals.total],
     ["Paid", totals.paid],
     ["Balance due", doc.status === "Void" ? 0 : totals.balance],
@@ -136,7 +159,12 @@ export async function createInvoicePdf(doc, repository) {
     heading("Notes");
     text(doc.notes);
   }
-  if (doc.attachments.some((a) => a.category === "Receipt / material list" && Number(a.invoiceAmount) > 0))
+  if (
+    doc.attachments.some(
+      (a) =>
+        a.category === "Receipt / material list" && Number(a.invoiceAmount) > 0,
+    )
+  )
     text("Materials receipts attached", { font: bold });
   let imagePage = null;
   let imageSlot = 0;
