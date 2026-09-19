@@ -179,8 +179,9 @@ export async function createInvoicePdf(doc, repository) {
         imagePage = null;
         imageSlot = 0;
         const source = await PDFDocument.load(await stored.blob.arrayBuffer());
-        for (const sourcePage of source.getPages()) {
-          const embedded = await pdf.embedPage(sourcePage);
+        // Embed together so shared fonts/images are copied only once per attachment.
+        const embeddedPages = await pdf.embedPages(source.getPages());
+        for (const embedded of embeddedPages) {
           const p = pdf.addPage([612, 792]);
           const scale = Math.min(306 / embedded.width, 396 / embedded.height);
           p.drawPage(embedded, {
@@ -197,8 +198,7 @@ export async function createInvoicePdf(doc, repository) {
           });
         }
       } else {
-        const image = await imagePng(stored.blob),
-          embedded = await pdf.embedPng(image);
+        const embedded = await embedAttachmentImage(pdf, stored.blob);
         if (!imagePage || imageSlot === 2) {
           imagePage = pdf.addPage([612, 792]);
           imageSlot = 0;
@@ -266,4 +266,27 @@ async function imagePng(blob) {
   } finally {
     URL.revokeObjectURL(url);
   }
+}
+
+async function embedAttachmentImage(pdf, blob) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  // Keep JPEG compression intact instead of expanding photos into PNGs.
+  // Camera files with EXIF metadata use the existing browser conversion so
+  // orientation remains identical to previous downloads.
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && !hasExif(bytes)) {
+    return pdf.embedJpg(bytes);
+  }
+  return pdf.embedPng(await imagePng(blob));
+}
+function hasExif(bytes) {
+  let offset = 2;
+  while (offset + 4 <= bytes.length && bytes[offset] === 0xff) {
+    const marker = bytes[offset + 1];
+    if (marker === 0xda || marker === 0xd9) break;
+    const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+    if (length < 2 || offset + 2 + length > bytes.length) break;
+    if (marker === 0xe1 && bytes[offset + 4] === 0x45 && bytes[offset + 5] === 0x78 && bytes[offset + 6] === 0x69 && bytes[offset + 7] === 0x66) return true;
+    offset += length + 2;
+  }
+  return false;
 }
