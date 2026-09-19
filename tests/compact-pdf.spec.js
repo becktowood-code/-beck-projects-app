@@ -76,9 +76,15 @@ test("smaller download compresses scanned PDF attachments while preserving text 
   expect(jpgs[0].dict.get(PDFName.of("Height")).toString()).toBe("1600");
   // A subsequent standard download still uses the unchanged saved attachment.
   await download("Download PDF", "artifacts/scan-regular-again.pdf");
-  expect((await fs.stat("artifacts/scan-regular-again.pdf")).size).toBe(
-    before.length,
-  );
+  const imageStreams = async (bytes) => {
+    const document = await PDFDocument.load(bytes);
+    return document.context.enumerateIndirectObjects().map(([, object]) => object)
+      .filter(object => object instanceof PDFRawStream && object.dict.get(PDFName.of("Subtype"))?.toString() === "/Image")
+      .map(object => Buffer.from(object.getContents()));
+  };
+  // Creation timestamps can change the PDF length; image bytes must not change.
+  expect(await imageStreams(await fs.readFile("artifacts/scan-regular-again.pdf")))
+    .toEqual(await imageStreams(before));
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
