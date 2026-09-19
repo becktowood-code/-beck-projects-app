@@ -128,7 +128,7 @@ for (const type of ["invoice", "quote"])
       "Boxes",
       "Labor Total: $214.00",
       "Materials Total: $181.90",
-      "Total: $395.90",
+      type === "quote" ? "Quoted total: $395.90" : "Total: $395.90",
     ])
       expect(extracted).toContain(label);
     await page.setViewportSize({ width: 390, height: 844 });
