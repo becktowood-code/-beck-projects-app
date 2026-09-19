@@ -178,6 +178,7 @@ export default function Records({ docs, open }) {
                       {d.number}
                     </button>
                     <small>{d.type}</small>
+                    {d.projectTitle && <small>{d.projectTitle}</small>}
                   </td>
                   <td>
                     {d.date}
@@ -189,7 +190,7 @@ export default function Records({ docs, open }) {
                   </td>
                   <td>
                     {d.customerName || "—"}
-                    <small>{d.contractorName || d.projectTitle}</small>
+                    <small>{d.contractorName}</small>
                   </td>
                   <td>
                     <span className={`badge ${d.status.toLowerCase()}`}>

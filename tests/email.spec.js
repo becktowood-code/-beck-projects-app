@@ -9,12 +9,14 @@ test('issued invoice email is editable, addresses selected contractor and follow
  await page.getByLabel('Contractor name',{exact:true}).fill('Contractor');
  await page.getByLabel('Contractor email',{exact:true}).fill('contractor@example.com');
  await page.getByLabel('Bill to',{exact:true}).selectOption('contractor');
- await page.getByLabel('Project / job title').fill('Panel replacement');
+ await page.getByLabel('Invoice name').fill('Panel replacement');
  await page.getByRole('button',{name:'Generate / issue invoice',exact:true}).click();
+ await expect(page.locator('.paper')).toContainText('Panel replacement');
  await page.getByRole('button',{name:'Draft email',exact:true}).click();
  await expect(page.getByLabel('Email recipient',{exact:true})).toHaveValue('contractor@example.com');
  await expect(page.getByLabel('Email subject',{exact:true})).toHaveValue('Invoice HA-0001 — Panel replacement');
  await expect(page.getByLabel('Email message',{exact:true})).toContainText('Balance due: $150.00');
+ await expect(page.getByLabel('Email message',{exact:true})).toContainText('Thank you,\nJoao Beck\nHigh-Amps Electrical Services');
  await page.getByLabel('Email message',{exact:true}).fill('Hi Contractor,\nPlease find attached the invoice.');
  const link=page.getByRole('link',{name:'Open in email app'});
  const uri=new URL(await link.getAttribute('href'));

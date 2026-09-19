@@ -26,7 +26,7 @@ export function invoiceEmail(doc) {
       `${quote ? "Quote total" : "Invoice total"}: ${money(total.total)}`,
       payment,
       quote ? "" : "Please let me know if you have any questions.",
-      `Thank you,\n${company.name}\n${company.email}\n${company.phone}`,
+      `Thank you,\n${company.senderName || COMPANY.senderName}\n${company.name}\n${company.email}\n${company.phone}`,
     ]
       .filter(Boolean)
       .join("\n\n"),

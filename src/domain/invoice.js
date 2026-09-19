@@ -1,5 +1,6 @@
 export const COMPANY = Object.freeze({
   name: "High-Amps Electrical Services",
+  senderName: "Joao Beck",
   address: "18332 181st Cir S, Boca Raton, FL 33498",
   phone: "+1 (561) 579-2642",
   email: "high-amps@outlook.com",

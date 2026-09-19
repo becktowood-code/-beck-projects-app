@@ -44,7 +44,8 @@ export default function Editor({
             onChange={(v) => set("dueDate", v)}
           />
           <Field
-            label="Project / job title"
+            label={doc.type === "Quote" ? "Quote name" : "Invoice name"}
+            placeholder="e.g. Men’s Cave electrical rough-in at 123 Main St"
             value={doc.projectTitle}
             onChange={(v) => set("projectTitle", v)}
           />

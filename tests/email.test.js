@@ -22,3 +22,11 @@ test('email URI keeps reserved characters and newlines out of headers',()=>{
  const link=emailLink({to:'client@example.com\r\n',subject:'Invoice\r\nBcc: other & #?',body:'A & B\nThanks'});
  const u=new URL(link);assert.equal(u.searchParams.size,2);assert.equal(u.searchParams.get('body'),'A & B\r\nThanks');assert.doesNotMatch(u.searchParams.get('subject'),/[\r\n]/);
 });
+
+
+test('email signature includes Joao Beck before company for new and existing documents', () => {
+ const doc=blankDocument('HA-NAME');
+ assert.ok(invoiceEmail(doc).body.includes('Thank you,\nJoao Beck\nHigh-Amps Electrical Services'));
+ delete doc.company.senderName;
+ assert.ok(invoiceEmail(doc).body.includes('Thank you,\nJoao Beck\nHigh-Amps Electrical Services'));
+});

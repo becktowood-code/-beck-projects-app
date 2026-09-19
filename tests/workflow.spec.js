@@ -25,7 +25,7 @@ test("invoice lifecycle persists attachments, exports complete PDF, and locks pa
     .getByLabel("Contractor email", { exact: true })
     .fill("contractor@example.com");
   await page.getByLabel("Bill to", { exact: true }).selectOption("contractor");
-  await page.getByLabel("Project / job title").fill("Panel replacement");
+  await page.getByLabel("Invoice name").fill("Panel replacement");
   await page.getByLabel("Labor 1 Hours").fill("3");
   await page
     .getByRole("button", { name: "+ Add materials", exact: true })
