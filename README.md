@@ -75,3 +75,6 @@ Invoices and quotes list every labor/fixed-cost line, then Labor Total, followed
 ## Email drafts
 
 After issuing an invoice or quote, choose Draft email. The editable message uses the selected customer or contractor and the saved document totals, terms and company details. Save any corrections before drafting. Open in email app uses the device’s default mail handler; Copy email text is available for webmail. Download the PDF and attach it manually before sending. No email is sent by the app and no email-service connection is required.
+
+For scanned attachments, choose **Download smaller PDF**. This applies high-quality JPEG compression to supported scan images at their full pixel resolution, while retaining vector text and page layout. It works for existing invoices and leaves saved attachments unchanged. Regular Download PDF remains available. Already-compressed or unsupported images are retained, so savings vary by document.
+

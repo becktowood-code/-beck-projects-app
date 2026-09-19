@@ -264,11 +264,11 @@ function App({ repository, user, signOut }) {
           : current;
       if (repository.cloud) setCurrent(d);
       const { createInvoicePdf, download } = await import("./services/pdf.js");
-      const blob = await createInvoicePdf(d, repository);
-      if (mode === "download")
-        download(blob, `${d.number.replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`);
+      const blob = await createInvoicePdf(d, repository, { smaller: mode === "smaller" });
+      if (mode === "download" || mode === "smaller")
+        download(blob, `${d.number.replace(/[^a-zA-Z0-9_-]/g, "_")}${mode === "smaller" ? "-smaller" : ""}.pdf`);
       else setPdfUrl(URL.createObjectURL(blob));
-      setMessage("PDF ready. Attach the downloaded file to your email.");
+      setMessage(`PDF ready (${(blob.size / 1000000).toFixed(2)} MB). Attach the downloaded file to your email.`);
     });
   }
   async function backup() {
@@ -488,6 +488,10 @@ function App({ repository, user, signOut }) {
                   >
                     Download PDF
                   </button>
+                  <button className="secondary" disabled={busy} onClick={() => pdf("smaller")}>
+                    Download smaller PDF
+                  </button>
+                  <small className="muted">Smaller PDF uses high-quality image compression. Original attachments stay unchanged.</small>
                 </div>
               </div>
               {locked(current) && (

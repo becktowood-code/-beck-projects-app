@@ -12,7 +12,7 @@ const safe = (value) =>
   String(value ?? "")
     .replace(/[–—]/g, "-")
     .replace(/[^\x20-\x7E\n\xA0-\xFF]/g, "?");
-export async function createInvoicePdf(doc, repository) {
+export async function createInvoicePdf(doc, repository, { smaller = false } = {}) {
   const pdf = await PDFDocument.create(),
     regular = await pdf.embedFont(StandardFonts.Helvetica),
     bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -239,6 +239,10 @@ export async function createInvoicePdf(doc, repository) {
   );
   pdf.setTitle(`${doc.type} ${doc.number}`);
   pdf.setAuthor(company.name);
+  if (smaller) {
+    const { optimizeScannedImages } = await import("./optimizePdf.js");
+    await optimizeScannedImages(pdf);
+  }
   return new Blob([await pdf.save()], { type: "application/pdf" });
 }
 async function imagePng(blob) {
