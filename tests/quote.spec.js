@@ -6,6 +6,12 @@ test("quote editor and preview use proposal wording and export a PDF", async ({ 
   await page.getByLabel("Quote date", { exact: true }).fill("2026-09-19");
   await page.getByLabel("Valid until", { exact: true }).fill("2026-10-19");
   await page.getByLabel("Customer name", { exact: true }).fill("Quote test customer");
+  await page.getByRole("button", { name: "+ Add materials", exact: true }).click();
+  await page.getByLabel("Materials 1 Description", { exact: true }).fill("All project materials");
+  await page.getByLabel("Materials 1 Quantity", { exact: true }).fill("");
+  await page.getByLabel("Materials 1 Total amount ($)", { exact: true }).fill("500");
+  await expect(page.locator(".paper")).toContainText("Lump sum: $500.00");
+  await expect(page.locator(".paper")).toContainText("$695.50");
   await page.getByLabel("Quote terms", { exact: true }).fill("Please approve the proposed scope before scheduling.");
   await page.getByRole("button", { name: "Generate / issue quote", exact: true }).click();
   const paper = page.locator(".paper");
@@ -23,5 +29,11 @@ test("quote editor and preview use proposal wording and export a PDF", async ({ 
   await page.getByLabel("Document type", { exact: true }).selectOption("Quote");
   await page.getByRole("button", { name: "Open", exact: true }).click();
   await expect(page.getByLabel("Valid until", { exact: true })).toHaveValue("2026-10-19");
+  await expect(page.getByLabel("Materials 1 Quantity", { exact: true })).toHaveValue("");
+  await expect(page.getByLabel("Materials 1 Total amount ($)", { exact: true })).toHaveValue("500");
+  await expect(page.locator(".paper")).toContainText("$695.50");
+  await page.getByLabel("Materials 1 Quantity", { exact: true }).fill("2");
+  await expect(page.getByLabel("Materials 1 Unit cost ($)", { exact: true })).toHaveValue("500");
+  await expect(page.locator(".paper")).toContainText("$1,230.50");
   await expect(page.getByLabel("Quote terms", { exact: true })).toHaveValue("Please approve the proposed scope before scheduling.");
 });

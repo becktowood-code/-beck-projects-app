@@ -139,12 +139,13 @@ export default function Editor({
         ].map(([kind, title, defaults, fields]) => (
           <div className="line-group" key={kind}>
             <h3>{title}</h3>
+            {kind === "materials" && <p className="muted">Leave quantity blank to enter one total for all materials on that line. Tax and markup still apply as configured.</p>}
             {doc[kind].map((row, index) => (
               <div className="line-item" key={row.id}>
                 {fields.map(([key, label]) => (
                   <Field
                     key={key}
-                    label={`${title} ${index + 1} ${label}`}
+                    label={`${title} ${index + 1} ${kind === "materials" && key === "cost" && row.amountOnly ? "Total amount ($)" : label}`}
                     type={
                       ["description", "source"].includes(key)
                         ? "text"
@@ -158,12 +159,18 @@ export default function Editor({
                         ? undefined
                         : "any"
                     }
-                    value={row[key]}
+                    value={kind === "materials" && key === "qty" && row.amountOnly ? "" : row[key]}
+                    placeholder={kind === "materials" && key === "qty" ? "All materials" : undefined}
                     onChange={(value) =>
                       set(
                         kind,
                         doc[kind].map((r) =>
-                          r.id === row.id ? { ...r, [key]: value } : r,
+                          r.id === row.id ? {
+                            ...r,
+                            ...(kind === "materials" && key === "qty"
+                              ? { qty: value === "" ? 1 : value, amountOnly: value === "" }
+                              : { [key]: value }),
+                          } : r,
                         ),
                       )
                     }

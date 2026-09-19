@@ -46,8 +46,7 @@ export function billingBreakdown(doc) {
         kind === "labor"
           ? row.hours + " hrs × " + money(row.rate)
           : kind === "materials"
-            ? row.qty +
-              " × " +
+            ? (row.amountOnly ? "Lump sum: " : row.qty + " × ") +
               money(row.cost) +
               (Number(row.markup) ? " + " + row.markup + "% markup" : "")
             : "",
