@@ -1,4 +1,5 @@
 import React from "react";
+import { documentPresentation } from "../domain/documentPresentation.js";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
 import {
   calculate,
@@ -18,6 +19,7 @@ export function Logo() {
   );
 }
 export default function Preview({ doc }) {
+  const view = documentPresentation(doc);
   const t = calculate(doc),
     breakdown = billingBreakdown(doc),
     c = doc.company || COMPANY;
@@ -28,8 +30,8 @@ export default function Preview({ doc }) {
         <div>
           <h2>{doc.type}</h2>
           <strong>{doc.number}</strong>
-          <p>Invoice date: {doc.date}</p>
-          {doc.dueDate && <p>Due date: {doc.dueDate}</p>}
+          <p>{view.dateLabel}: {doc.date}</p>
+          {view.deadline && <p>{view.deadlineLabel}: {view.deadline}</p>}
           <span className={`badge ${doc.status.toLowerCase()}`}>
             {doc.status}
           </span>
@@ -45,7 +47,7 @@ export default function Preview({ doc }) {
       <hr />
       <div className="two">
         <div>
-          <h3>Bill to</h3>
+          <h3>{view.recipientLabel}</h3>
           <strong>{doc[doc.recipient + "Name"] || "Recipient name"}</strong>
           <p className="prewrap">
             {[
@@ -58,9 +60,10 @@ export default function Preview({ doc }) {
           </p>
         </div>
         <div>
-          <h3>Terms</h3>
+          {view.quote && <><h3>Quote terms</h3><p className="prewrap">{view.quoteTerms}</p></>}
+          <h3>{view.quote ? "Payment terms after acceptance (future invoice)" : "Terms"}</h3>
           <p>{doc.terms}</p>
-          {doc.paidDate && <p>Paid on {doc.paidDate}</p>}
+          {!view.quote && doc.paidDate && <p>Paid on {doc.paidDate}</p>}
         </div>
       </div>
       {doc.customerName && doc.contractorName && (
@@ -74,7 +77,7 @@ export default function Preview({ doc }) {
       <p>{doc.jobAddress}</p>
       {[
         [
-          "Labor / Work",
+          view.quote ? "Proposed Labor / Work" : "Labor / Work",
           "Labor Total",
           breakdown.labor,
           breakdown.laborTax,
@@ -120,18 +123,16 @@ export default function Preview({ doc }) {
       ))}
       <div className="totals">
         {[
-          ["Total", t.total],
-          ["Paid", t.paid],
-          ["Balance due", doc.status === "Void" ? 0 : t.balance],
+          [view.totalLabel, t.total],
+          ...(!view.quote ? [["Paid", t.paid], ["Balance due", doc.status === "Void" ? 0 : t.balance]] : []),
         ].map(([label, value]) => (
-          <div className={label === "Total" ? "grand" : ""} key={label}>
+          <div className={label === view.totalLabel ? "grand" : ""} key={label}>
             <span>{label}</span>
             <strong>{money(value)}</strong>
           </div>
         ))}
       </div>
-      <h3>Payment methods</h3>
-      <p className="prewrap">{c.payment}</p>
+      {view.quote ? <p>{view.notice}</p> : <><h3>Payment methods</h3><p className="prewrap">{c.payment}</p></>}
       <p className="prewrap">{doc.notes}</p>
       {doc.attachments.some(
         (a) =>

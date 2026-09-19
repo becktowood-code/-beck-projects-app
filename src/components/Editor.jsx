@@ -1,4 +1,5 @@
 import React from "react";
+import { documentPresentation } from "../domain/documentPresentation.js";
 import { COMPANY, locked } from "../domain/invoice.js";
 export function Field({ label, value, onChange, type = "text", ...props }) {
   return (
@@ -21,6 +22,7 @@ export default function Editor({
   disabled,
 }) {
   const set = (key, value) => update({ [key]: value });
+  const view = documentPresentation(doc);
   return (
     <fieldset disabled={disabled || locked(doc)} className="editor-fields">
       <section className="card">
@@ -32,16 +34,16 @@ export default function Editor({
             onChange={(v) => set("number", v)}
           />
           <Field
-            label="Invoice date"
+            label={view.dateLabel}
             type="date"
             value={doc.date}
             onChange={(v) => set("date", v)}
           />
           <Field
-            label="Due date"
+            label={view.deadlineLabel}
             type="date"
-            value={doc.dueDate}
-            onChange={(v) => set("dueDate", v)}
+            value={view.deadline}
+            onChange={(v) => set(view.quote ? "validUntil" : "dueDate", v)}
           />
           <Field
             label={doc.type === "Quote" ? "Quote name" : "Invoice name"}
@@ -55,14 +57,14 @@ export default function Editor({
             onChange={(v) => set("jobAddress", v)}
           />
           <Field
-            label="Payment terms"
+            label={view.quote ? "Payment terms after acceptance (future invoice)" : "Payment terms"}
             value={doc.terms}
             onChange={(v) => set("terms", v)}
           />
           <label>
-            Bill to
+            {view.recipientLabel}
             <select
-              aria-label="Bill to"
+              aria-label={view.recipientLabel}
               value={doc.recipient}
               onChange={(e) => set("recipient", e.target.value)}
             >
@@ -71,6 +73,7 @@ export default function Editor({
             </select>
           </label>
         </div>
+        {view.quote && <label>Quote terms<textarea aria-label="Quote terms" value={view.quoteTerms} onChange={(e) => set("quoteTerms", e.target.value)} /></label>}
       </section>
       {["customer", "contractor"].map((kind) => (
         <section className="card" key={kind}>

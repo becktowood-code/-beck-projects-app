@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { documentPresentation } from "../domain/documentPresentation.js";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
 import {
   calculate,
@@ -13,6 +14,7 @@ const safe = (value) =>
     .replace(/[–—]/g, "-")
     .replace(/[^\x20-\x7E\n\xA0-\xFF]/g, "?");
 export async function createInvoicePdf(doc, repository, { smaller = false } = {}) {
+  const view = documentPresentation(doc);
   const pdf = await PDFDocument.create(),
     regular = await pdf.embedFont(StandardFonts.Helvetica),
     bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -88,9 +90,8 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
   y = 650;
   page.drawRectangle({ x: 42, y: 637, width: 528, height: 3, color: gold });
   text(`${doc.type.toUpperCase()} ${doc.number}`, { font: bold, size: 22 });
-  text(
-    `Status: ${doc.status} | Invoice date: ${doc.date}${doc.dueDate ? ` | Due date: ${doc.dueDate}` : ""} | ${doc.terms}`,
-  );
+  text(`Status: ${doc.status} | ${view.dateLabel}: ${doc.date}${view.deadline ? ` | ${view.deadlineLabel}: ${view.deadline}` : ""}`);
+  if (!view.quote) text(doc.terms);
   if (doc.status === "Paid")
     text(
       `PAID ${doc.paidDate || "(date not recorded in legacy data)"} | ${doc.paymentMethod || ""}`,
@@ -98,7 +99,7 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
     );
   if (doc.status === "Void")
     text(`VOID: ${doc.voidReason || ""}`, { font: bold });
-  heading("Bill to");
+  heading(view.recipientLabel);
   text(
     [
       doc[`${doc.recipient}Name`],
@@ -115,7 +116,7 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
   if (doc.projectTitle) heading(doc.projectTitle);
   for (const [title, label, rows, tax, total] of [
     [
-      "Labor / Work",
+      view.quote ? "Proposed Labor / Work" : "Labor / Work",
       "Labor Total",
       breakdown.labor,
       breakdown.laborTax,
@@ -143,18 +144,25 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
   ensure(125);
   y -= 12;
   for (const [label, value] of [
-    ["Total", totals.total],
-    ["Paid", totals.paid],
-    ["Balance due", doc.status === "Void" ? 0 : totals.balance],
+    [view.totalLabel, totals.total],
+    ...(!view.quote ? [["Paid", totals.paid], ["Balance due", doc.status === "Void" ? 0 : totals.balance]] : []),
   ])
     text(`${label}: ${money(value)}`, {
       x: 340,
       width: 230,
-      font: label === "Total" ? bold : regular,
-      size: label === "Total" ? 14 : 10,
+      font: label === view.totalLabel ? bold : regular,
+      size: label === view.totalLabel ? 14 : 10,
     });
-  heading("Payment methods");
-  text(company.payment);
+  if (view.quote) {
+    heading("Quote terms");
+    text(view.quoteTerms);
+    heading("Payment terms after acceptance (future invoice)");
+    text(doc.terms);
+    text(view.notice, { color: gray });
+  } else {
+    heading("Payment methods");
+    text(company.payment);
+  }
   if (doc.notes) {
     heading("Notes");
     text(doc.notes);

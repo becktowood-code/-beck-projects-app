@@ -551,7 +551,7 @@ function App({ repository, user, signOut }) {
                     Void
                   </button>
                   <span className="muted">
-                    Unpaid invoices can be corrected and downloaded again.
+                    {current.type === "Quote" ? "Quotes can be revised and downloaded again. Issuing a quote does not mark it accepted or create an invoice." : "Unpaid invoices can be corrected and downloaded again."}
                   </span>
                 </div>
               )}
