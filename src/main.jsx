@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import Editor, { Field } from "./components/Editor.jsx";
+import EmailDraft from "./components/EmailDraft.jsx";
 import Preview, { Logo } from "./components/Preview.jsx";
 import Records from "./components/Records.jsx";
 import { locked, today } from "./domain/invoice.js";
@@ -550,6 +551,7 @@ function App({ repository, user, signOut }) {
                   </span>
                 </div>
               )}
+              <EmailDraft key={`${current.id}-${current.version}`} doc={current} dirty={dirty} busy={busy} />
               <div className="document-grid">
                 <Editor
                   doc={current}

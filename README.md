@@ -71,3 +71,7 @@ This checks issuing, correcting, reopening, PDF download with oversized image an
 ## Itemized billing
 
 Invoices and quotes list every labor/fixed-cost line, then Labor Total, followed by each manual material and charged receipt. Each section includes its applicable sales tax; Total equals Labor Total + Materials Total. Existing customer/contractor tax rules, markup, payment balances and saved records remain supported. Material entries and receipts support descriptions and optional source/supplier names. Receipt amounts marked tax-inclusive are not taxed twice. Enter a purchase as manual items or a receipt amount, not both; attachments with no amount remain supporting documents. Preview and downloaded PDFs use the same cents-based breakdown.
+
+## Email drafts
+
+After issuing an invoice or quote, choose Draft email. The editable message uses the selected customer or contractor and the saved document totals, terms and company details. Save any corrections before drafting. Open in email app uses the device’s default mail handler; Copy email text is available for webmail. Download the PDF and attach it manually before sending. No email is sent by the app and no email-service connection is required.
