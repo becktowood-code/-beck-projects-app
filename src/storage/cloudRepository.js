@@ -5,6 +5,7 @@ import {
   validate,
 } from "../domain/invoice.js";
 import { blobData } from "./repository.js";
+import { invoiceFromQuote } from "../domain/quote.js";
 const BUCKET = "high-amps-attachments";
 function check(result) {
   if (result.error)
@@ -59,6 +60,22 @@ export class CloudInvoiceRepository {
         template: blankDocument("pending", type),
       }),
     );
+  }
+  async acceptQuote(doc) {
+    const quote = await this.get(doc.id);
+    if (quote.type !== "Quote") throw new Error("Quote not found.");
+    if (quote.invoiceId) return this.get(quote.invoiceId);
+    if (quote.version !== doc.version) throw new Error("This quote changed. Reload it before accepting.");
+    const invoice = invoiceFromQuote(quote, "pending");
+    for (const [i, item] of quote.attachments.entries()) {
+      if (item.missing) throw new Error(`Re-upload the missing attachment before accepting: ${item.name}`);
+      const stored = await this.attachment(item.id);
+      await this.upload(invoice.id, { id: invoice.attachments[i].id, blob: stored.blob });
+    }
+    return check(await this.client.rpc("ha_accept_quote", {
+      quote_id: quote.id, expected_version: quote.version, invoice_id: invoice.id,
+      attachment_ids: invoice.attachments.map(a => a.id), invoice_date: invoice.date,
+    }));
   }
   async upload(documentId, { id, blob }) {
     if (!(blob instanceof Blob)) throw new Error("Invalid attachment.");

@@ -161,6 +161,16 @@ function App({ repository, user, signOut }) {
       window.removeEventListener("online", reload);
     };
   }, [repository]);
+  async function acceptQuote() {
+    await run(async () => {
+      const invoice = await repository.acceptQuote(current);
+      setCurrent(invoice);
+      setDirty(false);
+      setUploads([]);
+      await refresh();
+      setMessage(`Quote accepted. Invoice ${invoice.number} is ready to download or email.`);
+    });
+  }
   async function newDoc(type) {
     if (!mayLeave()) return;
     await run(async () => {
@@ -494,6 +504,18 @@ function App({ repository, user, signOut }) {
                   <small className="muted">Smaller PDF uses high-quality image compression. Original attachments stay unchanged.</small>
                 </div>
               </div>
+              {current.sourceQuoteId && <div className="notice">
+                Created from accepted quote {current.sourceQuoteNumber}.{" "}
+                <button className="secondary" disabled={busy} onClick={() => open(current.sourceQuoteId)}>Open original quote</button>
+              </div>}
+              {current.type === "Quote" && current.invoiceId && <div className="notice">
+                Accepted on {new Date(current.acceptedAt).toLocaleDateString()}. Invoice {current.invoiceNumber} created. Later quote edits do not change the invoice.{" "}
+                <button className="secondary" disabled={busy} onClick={() => open(current.invoiceId)}>Open linked invoice</button>
+              </div>}
+              {current.type === "Quote" && current.status === "Issued" && !current.invoiceId && <div className="notice">
+                <button disabled={busy || dirty} onClick={acceptQuote}>Accept quote &amp; create invoice</button>
+                <p>{dirty ? "Save your changes before accepting the quote." : "Once your customer accepts, create an issued invoice with the same details and attachments, a new number and today’s date. Review the invoice due date before sending."}</p>
+              </div>}
               {locked(current) && (
                 <div className="notice">
                   This {current.status.toLowerCase()} document is read-only.{" "}

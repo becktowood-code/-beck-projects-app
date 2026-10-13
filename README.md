@@ -17,7 +17,7 @@ Vercel: use the Vite framework preset, `npm run build`, and output directory `di
 
 ## Supabase cloud setup
 
-1. Create a free Supabase project. Run `supabase/migrations/202609070001_cloud_records.sql` as the database owner, using the SQL editor or migrations CLI. The application tables use Row Level Security and private attachment storage.
+1. Create a free Supabase project. Run the SQL files in `supabase/migrations/` in filename order as the database owner, using the SQL editor or migrations CLI. For an existing installation, apply only the new `202610130001_accept_quote.sql` migration before deploying the quote acceptance feature. The application tables use Row Level Security and private attachment storage.
 2. In Supabase Authentication → URL Configuration, set Site URL to your Vercel app URL. Email confirmation and recovery redirect to that origin. Only add exact trusted development/preview URLs when needed.
 3. Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in Vercel and redeploy. For local development, copy `.env.example` to `.env.local`. These are public client settings: never use the database password, a secret key or a service-role key in a Vite variable.
 4. Open the app, create your invoice-app account, confirm its email, and use that same account on each device. This is a separate account from the Supabase administration dashboard. The default Supabase email service supports project-team email addresses only, with limited sends; custom SMTP is needed for other users. Email verification remains enabled.
@@ -34,6 +34,12 @@ With cloud configuration enabled, the app requires login and saves directly to S
 5. Download PDF, or View / print PDF and use the viewer's print control. Send the downloaded PDF using your email app. Images and each attached PDF page are scaled within a separate Letter page, preserving aspect ratio. Text invoices paginate; PDFs are not screen captures.
 6. Mark paid, enter the paid date/method/reference and confirm. This records full payment and locks all edits, attachment changes, voiding and reopening. There is no admin override. Quotes cannot be marked paid.
 7. Void cancels an unpaid document with a reason and retains a locked record. There is no delete button.
+
+## Accepted quotes
+
+Open an issued quote and save any pending changes, then choose **Accept quote & create invoice** after the customer accepts. This records the acceptance date and creates an issued, unpaid invoice with a new HA number, today's invoice date, the same recipient, project, line items, taxes, notes, payment terms and independent attachment copies. Review the invoice due date before sending: it starts blank, because quote validity is not a payment deadline. Quote-only terms are not copied. No email is sent automatically.
+
+The original quote and generated invoice have buttons to open each other. Acceptance and invoice creation commit together; repeat requests open the existing invoice. A stale quote or missing attachment stops conversion. Later quote corrections do not change the generated invoice. Both records and their links are included in backups.
 
 ## Records and backups
 

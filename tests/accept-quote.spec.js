@@ -1,0 +1,32 @@
+import { test, expect } from "@playwright/test";
+
+test("accepted quote creates an invoice, links both records and persists on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("http://127.0.0.1:5174");
+  await page.getByRole("button", { name: "+ New quote", exact: true }).click();
+  await page.getByLabel("Customer name", { exact: true }).fill("Accepted quote customer");
+  await page.getByLabel("Quote name", { exact: true }).fill("Kitchen electrical");
+  await page.getByRole("button", { name: "Generate / issue quote", exact: true }).click();
+  const accept = page.getByRole("button", { name: "Accept quote & create invoice", exact: true });
+  await expect(accept).toBeEnabled();
+  await page.getByLabel("Quote name", { exact: true }).fill("Kitchen electrical accepted");
+  await expect(accept).toBeDisabled();
+  await page.getByRole("button", { name: "Save changes", exact: true }).click();
+  await accept.click();
+  await expect(page.getByLabel("Invoice name", { exact: true })).toHaveValue("Kitchen electrical accepted");
+  await expect(page.getByLabel("Customer name", { exact: true })).toHaveValue("Accepted quote customer");
+  await expect(page.getByRole("button", { name: "Mark paid", exact: true })).toBeVisible();
+  await expect(page.locator(".paper")).toContainText("Balance due");
+  const downloading = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download PDF", exact: true }).click();
+  expect(await (await downloading).failure()).toBeNull();
+  await page.getByRole("button", { name: "Open original quote", exact: true }).click();
+  await expect(page.getByText(/Accepted on/)).toBeVisible();
+  await expect(accept).toHaveCount(0);
+  await page.getByRole("button", { name: "Open linked invoice", exact: true }).click();
+  await page.reload();
+  await page.getByRole("button", { name: "Open", exact: true }).click();
+  await expect(page.getByLabel("Invoice name", { exact: true })).toHaveValue("Kitchen electrical accepted");
+  await expect(page.getByRole("button", { name: "Open original quote", exact: true })).toBeVisible();
+  await page.screenshot({ path: "artifacts/accepted-quote-mobile.png", fullPage: true });
+});

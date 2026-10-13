@@ -1,4 +1,5 @@
 import { openDB } from "idb";
+import { invoiceFromQuote } from "../domain/quote.js";
 import {
   blankDocument,
   calculate,
@@ -52,6 +53,49 @@ export class InvoiceRepository {
     await tx.done;
     return doc;
   }
+  async acceptQuote(doc) {
+    const db = await this.db();
+    const tx = db.transaction(["documents", "settings", "attachments", "revisions"], "readwrite");
+    try {
+      const store = tx.objectStore("documents");
+      const quote = await store.get(doc.id);
+      if (!quote || quote.type !== "Quote") throw new Error("Quote not found.");
+      if (quote.invoiceId) {
+        const invoice = await store.get(quote.invoiceId);
+        if (!invoice) throw new Error("Linked invoice is missing. Restore it from a backup.");
+        await tx.done;
+        return invoice;
+      }
+      if (quote.version !== doc.version) throw new Error("This quote changed. Reload it before accepting.");
+      let count = Number(await tx.objectStore("settings").get("counter")) || 1;
+      let number;
+      do { number = `HA-${String(count++).padStart(4, "0")}`; }
+      while (await store.index("number").get(number));
+      const invoice = transition(invoiceFromQuote(quote, number), "issue");
+      const stamp = new Date().toISOString();
+      invoice.version = 1;
+      invoice.updatedAt = stamp;
+      invoice.history = [{ at: stamp, action: `Created from accepted quote ${quote.number}`, version: 1 }];
+      for (const [i, item] of quote.attachments.entries()) {
+        if (item.missing) throw new Error(`Re-upload the missing attachment before accepting: ${item.name}`);
+        const stored = await tx.objectStore("attachments").get(item.id);
+        if (!stored || stored.documentId !== quote.id) throw new Error(`Missing attachment: ${item.name}`);
+        await tx.objectStore("attachments").add({ ...stored, id: invoice.attachments[i].id, documentId: invoice.id });
+      }
+      await tx.objectStore("revisions").add({ key: `${quote.id}:${quote.version}`, document: quote });
+      await store.add(invoice);
+      await store.put({ ...quote, acceptedAt: stamp, invoiceId: invoice.id, invoiceNumber: invoice.number,
+        version: quote.version + 1, updatedAt: stamp,
+        history: [...quote.history, { at: stamp, action: `Accepted; created invoice ${invoice.number}`, version: quote.version + 1 }] });
+      await tx.objectStore("settings").put(count, "counter");
+      await tx.done;
+      return invoice;
+    } catch (error) {
+      try { tx.abort(); } catch { /* Already aborted. */ }
+      await tx.done.catch(() => {});
+      throw error;
+    }
+  }
   async save(doc, { action = "save", detail = {}, uploads = [] } = {}) {
     validate(doc);
     const db = await this.db(),
@@ -84,6 +128,8 @@ export class InvoiceRepository {
         throw new Error("That document number is already in use.");
       // Payment/audit fields cannot be rewritten through the editor.
       next.createdAt = existing.createdAt;
+      for (const key of ["acceptedAt", "invoiceId", "invoiceNumber", "sourceQuoteId", "sourceQuoteNumber"])
+        next[key] = existing[key];
       next.issuedAt = existing.issuedAt || next.issuedAt;
       next.payments = existing.payments || [];
       if (action !== "paid") {
