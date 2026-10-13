@@ -22,6 +22,12 @@ test("legacy invoice preview and PDF include current Zelle tag and the original 
     await (await download).saveAs(`artifacts/${file}`);
   }
   await page.setViewportSize({ width: 390, height: 844 });
+  const tag = await page.locator('.payment-details > p').boundingBox();
+  const qr = await page.locator('.zelle-qr svg').boundingBox();
+  const caption = await page.locator('.zelle-qr figcaption').boundingBox();
+  expect(qr.y).toBeGreaterThanOrEqual(tag.y + tag.height);
+  expect(Math.abs(qr.x - tag.x)).toBeLessThan(2);
+  expect(Math.abs(caption.x + caption.width / 2 - (qr.x + qr.width / 2))).toBeLessThan(2);
   await page.locator('.payment-methods').screenshot({ path: 'artifacts/payment-mobile.png' });
   await page.getByRole('button', { name: '+ New quote', exact: true }).click();
   await expect(page.locator('.payment-methods')).toHaveCount(0);

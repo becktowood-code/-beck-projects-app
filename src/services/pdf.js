@@ -163,25 +163,32 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
     text(view.notice, { color: gray });
   } else {
     const showQr = hasZelleQr(company);
-    if (showQr) ensure(170);
+    if (showQr) ensure(225);
     heading("Payment methods");
-    const paymentTop = y;
-    text(paymentInstructions(company), { width: showQr ? 345 : 528 });
+    text(paymentInstructions(company));
     if (showQr) {
       const qr = await pdf.embedJpg(await (await fetch(zelleQrUrl)).arrayBuffer());
-      const size = 96, x = 462, bottom = paymentTop - size + 8;
+      const size = 96, x = 42, bottom = y - size - 6;
       const v = ZELLE_QR_VIEW, scale = size / v.size;
       // Clip the supplied payment card to its QR viewport without resampling it.
       page.pushOperators(pushGraphicsState(), rectangle(x, bottom, size, size), clip(), endPath());
       page.drawImage(qr, { x: x - v.x * scale, y: bottom - (v.height - v.y - v.size) * scale,
         width: v.width * scale, height: v.height * scale });
       page.pushOperators(popGraphicsState());
-      const instructionsBottom = y;
-      y = bottom - 10;
-      text("Scan in your banking app", { x: 433, width: 153, size: 8 });
-      text("BECK PROJECTS LLC", { x: 438, width: 144, size: 8, font: bold });
-      text("paybeckprojects", { x: 443, width: 133, size: 8 });
-      y = Math.min(y, instructionsBottom);
+      for (const [index, [line, font]] of [
+        ["Scan in your banking app", regular],
+        ["BECK PROJECTS LLC", bold],
+        ["paybeckprojects", regular],
+      ].entries()) {
+        page.drawText(line, {
+          x: x + (size - font.widthOfTextAtSize(line, 8)) / 2,
+          y: bottom - 13 - index * 13,
+          size: 8,
+          font,
+          color: ink,
+        });
+      }
+      y = bottom - 52;
     }
   }
   if (doc.notes) {
