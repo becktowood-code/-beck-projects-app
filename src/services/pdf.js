@@ -1,4 +1,6 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, pushGraphicsState, popGraphicsState, rectangle, clip, endPath } from "pdf-lib";
+import zelleQrUrl from "../assets/zelle-paybeckprojects.jpg";
+import { paymentInstructions, hasZelleQr, ZELLE_QR_VIEW } from "../domain/payment.js";
 import { documentPresentation } from "../domain/documentPresentation.js";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
 import {
@@ -160,8 +162,27 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
     text(doc.terms);
     text(view.notice, { color: gray });
   } else {
+    const showQr = hasZelleQr(company);
+    if (showQr) ensure(205);
     heading("Payment methods");
-    text(company.payment);
+    const paymentTop = y;
+    text(paymentInstructions(company), { width: showQr ? 345 : 528 });
+    if (showQr) {
+      const qr = await pdf.embedJpg(await (await fetch(zelleQrUrl)).arrayBuffer());
+      const size = 132, x = 426, bottom = paymentTop - size + 8;
+      const v = ZELLE_QR_VIEW, scale = size / v.size;
+      // Clip the supplied payment card to its QR viewport without resampling it.
+      page.pushOperators(pushGraphicsState(), rectangle(x, bottom, size, size), clip(), endPath());
+      page.drawImage(qr, { x: x - v.x * scale, y: bottom - (v.height - v.y - v.size) * scale,
+        width: v.width * scale, height: v.height * scale });
+      page.pushOperators(popGraphicsState());
+      const instructionsBottom = y;
+      y = bottom - 10;
+      text("Scan in your banking app", { x: 417, width: 153, size: 8 });
+      text("BECK PROJECTS LLC", { x: 426, width: 144, size: 8, font: bold });
+      text("paybeckprojects", { x: 437, width: 133, size: 8 });
+      y = Math.min(y, instructionsBottom);
+    }
   }
   if (doc.notes) {
     heading("Notes");

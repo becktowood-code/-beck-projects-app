@@ -71,9 +71,11 @@ test("smaller download compresses scanned PDF attachments while preserving text 
         o instanceof PDFRawStream &&
         o.dict.get(PDFName.of("Filter"))?.toString() === "/DCTDecode",
     );
-  expect(jpgs).toHaveLength(1);
-  expect(jpgs[0].dict.get(PDFName.of("Width")).toString()).toBe("1200");
-  expect(jpgs[0].dict.get(PDFName.of("Height")).toString()).toBe("1600");
+  expect(jpgs).toHaveLength(2);
+  const scan = jpgs.find(jpg => jpg.dict.get(PDFName.of("Width")).toString() === "1200");
+  expect(scan.dict.get(PDFName.of("Height")).toString()).toBe("1600");
+  const qrBytes = await fs.readFile('src/assets/zelle-paybeckprojects.jpg');
+  expect(jpgs.some(jpg => Buffer.from(jpg.getContents()).equals(qrBytes))).toBe(true);
   // A subsequent standard download still uses the unchanged saved attachment.
   await download("Download PDF", "artifacts/scan-regular-again.pdf");
   const imageStreams = async (bytes) => {

@@ -105,7 +105,7 @@ test("invoice lifecycle persists attachments, exports complete PDF, and locks pa
   const pdf = await PDFDocument.load(
     await fs.readFile("artifacts/invoice-with-attachments.pdf"),
   );
-  expect(pdf.getPageCount()).toBe(4);
+  expect(pdf.getPageCount()).toBe(5);
   for (const p of pdf.getPages())
     expect(p.getSize()).toEqual({ width: 612, height: 792 });
   await page.screenshot({

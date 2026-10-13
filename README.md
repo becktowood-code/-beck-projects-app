@@ -84,3 +84,7 @@ After issuing an invoice or quote, choose Draft email. The editable message uses
 
 For scanned attachments, choose **Download smaller PDF**. This applies high-quality JPEG compression to supported scan images at their full pixel resolution, while retaining vector text and page layout. It works for existing invoices and leaves saved attachments unchanged. Regular Download PDF remains available. Already-compressed or unsupported images are retained, so savings vary by document.
 
+## Invoice payment details
+
+Invoices show only **Zelle: paybeckprojects** and the supplied Beck Projects LLC QR code in the preview and both PDF downloads. Email drafts use the same Zelle tag. Previously saved invoices display the current payment method when reopened or downloaded; their stored record and revision history are unchanged. Quotes remain proposals without payment instructions.
+

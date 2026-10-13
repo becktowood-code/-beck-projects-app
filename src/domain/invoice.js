@@ -9,7 +9,7 @@ export const COMPANY = Object.freeze({
   terms: "Due on receipt",
   invoicePrefix: "HA",
   payment:
-    "Zelle: high-amps@outlook.com\nBank transfer: Beck Projects LLC · Capital One\nAccount and routing information available upon request.",
+    "Zelle: paybeckprojects",
 });
 export const today = () => new Date().toLocaleDateString("en-CA");
 export const money = (value) =>

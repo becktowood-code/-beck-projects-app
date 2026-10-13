@@ -1,6 +1,8 @@
 import React from "react";
 import { documentPresentation } from "../domain/documentPresentation.js";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
+import zelleQrUrl from "../assets/zelle-paybeckprojects.jpg";
+import { paymentInstructions, hasZelleQr, ZELLE_QR_VIEW } from "../domain/payment.js";
 import {
   calculate,
   COMPANY,
@@ -132,7 +134,18 @@ export default function Preview({ doc }) {
           </div>
         ))}
       </div>
-      {view.quote ? <p>{view.notice}</p> : <><h3>Payment methods</h3><p className="prewrap">{c.payment}</p></>}
+      {view.quote ? <p>{view.notice}</p> : <section className="payment-methods">
+        <h3>Payment methods</h3>
+        <div className="payment-details">
+          <p className="prewrap">{paymentInstructions(c)}</p>
+          {hasZelleQr(c) && <figure className="zelle-qr">
+            <svg viewBox={`${ZELLE_QR_VIEW.x} ${ZELLE_QR_VIEW.y} ${ZELLE_QR_VIEW.size} ${ZELLE_QR_VIEW.size}`} role="img" aria-label="Zelle QR code for Beck Projects LLC, paybeckprojects">
+              <image href={zelleQrUrl} width={ZELLE_QR_VIEW.width} height={ZELLE_QR_VIEW.height} />
+            </svg>
+            <figcaption>Scan in your banking app<br /><strong>BECK PROJECTS LLC</strong><br />paybeckprojects</figcaption>
+          </figure>}
+        </div>
+      </section>}
       <p className="prewrap">{doc.notes}</p>
       {doc.attachments.some(
         (a) =>

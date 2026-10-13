@@ -724,3 +724,9 @@ footer button {
 .invoice-lines .section-total th { text-align: left; }
 .invoice-lines .section-total { border-top: 2px solid #d6dbe1; }
 .invoice-lines td:first-child { overflow-wrap: anywhere; }
+.payment-details { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 16px; }
+.payment-details > p { flex: 1; min-width: 170px; }
+.zelle-qr { margin: 0; width: 176px; text-align: center; flex: 0 0 176px; }
+.zelle-qr svg { display: block; width: 176px; height: 176px; overflow: hidden; }
+.zelle-qr figcaption { font-size: 11px; line-height: 1.5; }
+.payment-methods { break-inside: avoid; }

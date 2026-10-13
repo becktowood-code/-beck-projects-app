@@ -1,4 +1,5 @@
 import { calculate, COMPANY, money } from "./invoice.js";
+import { paymentInstructions } from "./payment.js";
 
 export function invoiceEmail(doc) {
   const company = doc.company || COMPANY;
@@ -13,7 +14,7 @@ export function invoiceEmail(doc) {
           `Balance due: ${money(total.balance)}`,
           doc.dueDate ? `Due date: ${doc.dueDate}` : "",
           doc.terms ? `Payment terms: ${doc.terms}` : "",
-          company.payment ? `\nPayment instructions:\n${company.payment}` : "",
+          `\nPayment instructions:\n${paymentInstructions()}`,
         ]
           .filter(Boolean)
           .join("\n");

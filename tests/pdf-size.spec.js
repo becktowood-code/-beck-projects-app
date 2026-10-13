@@ -27,8 +27,10 @@ test('photo PDFs retain exact JPEG bytes and share resources across attached PDF
  const pdf=await PDFDocument.load(bytes);
  const jpgs=pdf.context.enumerateIndirectObjects().map(([,o])=>o).filter(o=>o instanceof PDFRawStream && o.dict.get(PDFName.of('Filter'))?.toString()==='/DCTDecode');
  // One standalone image plus one shared by all three receipt pages.
- expect(jpgs).toHaveLength(2);
- for(const jpg of jpgs)expect(Buffer.from(jpg.getContents())).toEqual(Buffer.from(jpeg));
+ expect(jpgs).toHaveLength(3);
+ const qrBytes=await fs.readFile('src/assets/zelle-paybeckprojects.jpg');
+ expect(jpgs.filter(jpg=>Buffer.from(jpg.getContents()).equals(qrBytes))).toHaveLength(1);
+ expect(jpgs.filter(jpg=>Buffer.from(jpg.getContents()).equals(Buffer.from(jpeg)))).toHaveLength(2);
  expect(pdf.getPageCount()).toBe(5);
  expect(bytes.length).toBeLessThan(jpeg.length*2+500000);
 });
