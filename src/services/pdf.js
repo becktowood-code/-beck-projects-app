@@ -3,6 +3,7 @@ import zelleQrUrl from "../assets/zelle-paybeckprojects.jpg";
 import { paymentInstructions, hasZelleQr, ZELLE_QR_VIEW } from "../domain/payment.js";
 import { documentPresentation } from "../domain/documentPresentation.js";
 import logoUrl from "../../High Amps - Logo - Logo IG.png";
+import { safePdfText as safe, wrapPdfText as wrap } from "./pdfText.js";
 import {
   calculate,
   billingBreakdown,
@@ -11,10 +12,6 @@ import {
 } from "../domain/invoice.js";
 
 export { download } from "./download.js";
-const safe = (value) =>
-  String(value ?? "")
-    .replace(/[–—]/g, "-")
-    .replace(/[^\x20-\x7E\n\xA0-\xFF]/g, "?");
 export async function createInvoicePdf(doc, repository, { smaller = false } = {}) {
   const view = documentPresentation(doc);
   const pdf = await PDFDocument.create(),
@@ -40,21 +37,6 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
       });
       y -= 14;
     }
-  }
-  function wrap(value, font, size, width) {
-    const lines = [];
-    for (const paragraph of safe(value).split("\n")) {
-      let line = "";
-      for (const char of paragraph) {
-        if (font.widthOfTextAtSize(line + char, size) > width) {
-          lines.push(line);
-          line = "";
-        }
-        line += char;
-      }
-      lines.push(line);
-    }
-    return lines;
   }
   function text(
     value,
