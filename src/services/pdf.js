@@ -132,6 +132,7 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
       breakdown.materialsTotal,
     ],
   ]) {
+    if (title === "Materials" && rows.length === 0) continue;
     heading(title);
     for (const row of rows) {
       text(row.description);

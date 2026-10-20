@@ -92,7 +92,7 @@ export default function Preview({ doc }) {
           breakdown.materialsTax,
           breakdown.materialsTotal,
         ],
-      ].map(([title, label, rows, tax, total]) => (
+      ].filter(([title, , rows]) => title !== "Materials" || rows.length > 0).map(([title, label, rows, tax, total]) => (
         <section key={title} aria-label={title}>
           <h3>{title}</h3>
           <table className="invoice-lines">
