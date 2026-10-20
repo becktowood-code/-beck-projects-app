@@ -3,6 +3,7 @@ export function documentPresentation(doc) {
   const quote = doc.type === "Quote";
   return {
     quote,
+    workTotalLabel: doc.fixedItems?.length ? "Total investment" : "Labor Total",
     dateLabel: quote ? "Quote date" : "Invoice date",
     deadlineLabel: quote ? "Valid until" : "Due date",
     deadline: quote ? doc.validUntil : doc.dueDate,

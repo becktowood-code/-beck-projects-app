@@ -80,7 +80,7 @@ export default function Preview({ doc }) {
       {[
         [
           view.quote ? "Proposed Labor / Work" : "Labor / Work",
-          "Labor Total",
+          view.workTotalLabel,
           breakdown.labor,
           breakdown.laborTax,
           breakdown.laborTotal,

@@ -101,7 +101,7 @@ export async function createInvoicePdf(doc, repository, { smaller = false } = {}
   for (const [title, label, rows, tax, total] of [
     [
       view.quote ? "Proposed Labor / Work" : "Labor / Work",
-      "Labor Total",
+      view.workTotalLabel,
       breakdown.labor,
       breakdown.laborTax,
       breakdown.laborTotal,
