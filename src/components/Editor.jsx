@@ -130,7 +130,7 @@ export default function Editor({
           [
             "fixedItems",
             "Fixed costs",
-            { description: "", amount: 0 },
+            { description: "", amount: 0, includesMaterials: false },
             [
               ["description", "Description"],
               ["amount", "Amount ($)"],
@@ -176,6 +176,23 @@ export default function Editor({
                     }
                   />
                 ))}
+                {kind === "fixedItems" && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      aria-label={`Fixed costs ${index + 1} Includes materials`}
+                      checked={Boolean(row.includesMaterials)}
+                      onChange={(e) =>
+                        set(kind, doc[kind].map((r) =>
+                          r.id === row.id
+                            ? { ...r, includesMaterials: e.target.checked }
+                            : r,
+                        ))
+                      }
+                    />
+                    Includes materials
+                  </label>
+                )}
                 <button
                   type="button"
                   className="quiet danger"

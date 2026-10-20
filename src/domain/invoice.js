@@ -49,7 +49,7 @@ export function billingBreakdown(doc) {
             ? (row.amountOnly ? "Lump sum: " : row.qty + " × ") +
               money(row.cost) +
               (Number(row.markup) ? " + " + row.markup + "% markup" : "")
-            : "",
+            : row.includesMaterials ? "Includes materials" : "",
     };
   };
   const labor = [
