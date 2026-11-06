@@ -88,3 +88,7 @@ For scanned attachments, choose **Download smaller PDF**. This applies high-qual
 
 Invoices show only **Zelle: paybeckprojects** and the supplied Beck Projects LLC QR code in the preview and both PDF downloads. Email drafts use the same Zelle tag. Previously saved invoices display the current payment method when reopened or downloaded; their stored record and revision history are unchanged. Quotes remain proposals without payment instructions.
 
+
+## Payment receipts
+
+Paid invoices now offer **Download payment receipt** and **View / print receipt**. The standalone PDF is generated from the saved, locked invoice and uses the deterministic receipt number `<invoice number>-R1`. It includes the billed recipient, original invoice number, work and material charges, tax, recorded date, payment method/reference, amount received and a zero balance. The receipt is regenerated on demand and does not create a second transaction or change the invoice. Draft, issued/unpaid, void invoices and quotes cannot generate receipts. Imported legacy paid records may have no recorded payment date or method; these fields are explicitly identified as missing rather than invented. Recording a payment is manual and does not independently verify bank settlement. Download the receipt and attach it in your email app; the app does not send email automatically.
