@@ -281,6 +281,22 @@ function App({ repository, user, signOut }) {
       setMessage(`PDF ready (${(blob.size / 1000000).toFixed(2)} MB). Attach the downloaded file to your email.`);
     });
   }
+  async function receipt(mode = "download") {
+    await run(async () => {
+      const d = repository.cloud ? await repository.get(current.id) : current;
+      if (!d || d.type !== "Invoice" || d.status !== "Paid")
+        throw new Error("Only paid invoices can generate a payment receipt.");
+      if (repository.cloud) setCurrent(d);
+      const [{ createReceiptPdf }, { download }] = await Promise.all([
+        import("./services/receipt.js"),
+        import("./services/download.js"),
+      ]);
+      const blob = await createReceiptPdf(d);
+      if (mode === "view") setPdfUrl(URL.createObjectURL(blob));
+      else download(blob, `${d.number.replace(/[^a-zA-Z0-9_-]/g, "_")}-receipt.pdf`);
+      setMessage("Payment receipt ready. Attach the downloaded PDF to your customer email.");
+    });
+  }
   async function backup() {
     await run(async () => {
       const data = await repository.backup();
@@ -502,6 +518,16 @@ function App({ repository, user, signOut }) {
                     Download smaller PDF
                   </button>
                   <small className="muted">Smaller PDF uses high-quality image compression. Original attachments stay unchanged.</small>
+                  {current.type === "Invoice" && current.status === "Paid" && (
+                    <>
+                      <button className="secondary" disabled={busy} onClick={() => receipt("download")}>
+                        Download payment receipt
+                      </button>
+                      <button className="secondary" disabled={busy} onClick={() => receipt("view")}>
+                        View / print receipt
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
               {current.sourceQuoteId && <div className="notice">
